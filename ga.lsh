@@ -1,0 +1,82 @@
+(libload "libc/make")
+;;(libload (concat lushdir "/lsh/libc/constants.lsh"))
+(libload (concat lushdir "/lsh/libc/shell.lsh"))
+;;(libload "population.lsh")
+;;(libload "population_rb.lsh")
+(libload "../setup.lsh")
+
+
+;; object performs basic genetic algorithm operations:
+;; reproduction operators mutation
+;; reproduction operators one point crossover
+(defclass GeneticAlgorithm object
+)
+
+#? (new GeneticAlgorithm )
+(defmethod GeneticAlgorithm GeneticAlgorithm ()
+    (cpheader "#include \"random.h\"")
+    ;;#{seed_random(-1) #}
+    1)
+
+;; one point crossover reproduction operator
+;; <p1> parent one used for crossover
+;; <p2> parent two used for crossover
+;; output is a copy of a randomly selected offspring
+(defmethod GeneticAlgorithm cr (p1 p2)
+  (declare (-idx1- (-ubyte-)) p1 p2)
+  ;; parents must have same length
+  (assert (= (idx-shape p1 0) (idx-shape p2 0)) 
+	  "CROSSOVER: parent of different length")
+  (let ((o1 (copy-array p1))     ;; copy parent one to offspring one
+	(o2 (copy-array p2))     ;; copy parent two to offspring two
+	(cr 0)                   ;; crossover point [1, lenght(p)]
+	(g (idx-shape p1 0)))    ;; length (p)
+
+    (declare (-idx1- (-ubyte-)) o1 o2)
+    (declare (-int-) cr g)
+    (setq cr (to-int #{rnm(1, $g) #})) ;;set crossover point
+
+    ;;perform crossover if it is selected
+    (when (<= (to-double #{ uniform() #}) PRxCR)
+      (array-copy (idx-trim p1 0 cr) (idx-trim o2 0 cr)) 
+      (array-copy (idx-trim p2 0 cr) (idx-trim o1 0 cr)))
+
+    ;;flip a coin to select and return an offspring
+    (if (<= (to-double #{uniform()#}) 0.5) 
+	o2
+      o1)))
+
+;; bitwise mutation reproduction operator
+;; makes changes on the offspring in place! will not copy parent into offspring
+;; <o> offspring to be mutated
+;; <prob> probability of bitwise mutation
+(defmethod GeneticAlgorithm mu (o prob)
+  (declare (-idx1- (-ubyte-)) o)
+  (declare (-double-) prob)
+  (let ((al 0))
+    ;;perform bitwise mutation if it is selected
+    (idx-bloop ((al o))
+      (if (<= (to-double #{uniform()#}) prob) 
+	  (al (bitxor 1 (al)))))
+)o)
+
+;; real value mutation reproduction operator
+;; makes changes on the offspring in place! will not copy parent into offspring
+;; <o> offspring to be mutated
+;; <prob> probability of bitwise mutation
+(defmethod GeneticAlgorithm mu_d (o prob)
+  (declare (-double-) o prob)
+  (if (<= (to-double #{uniform()#}) 0.5) ;half time add to dens, ow subtract
+      (setq o (+ o (mod (to-double #{uniform()#}) prob)))
+    (setq o (- o (mod (to-double #{uniform()#}) prob))))
+    
+  (if (< o 0)
+      (setq o (abs o)))
+  (if (> o 1)
+      (setq o (- 1 (- o 1))))
+  o)
+
+(let ((dhc-make-lushflags (concat dhc-make-lushflags (sprintf " -I%s" PROJECTxDIR))))
+  (dhc-make-class () GeneticAlgorithm)
+)
+

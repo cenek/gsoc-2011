@@ -1,0 +1,75 @@
+(libload "../random.lsh")
+(libload "../setup.lsh")
+(libload "DensClas.lsh")
+(libload "population.lsh")
+
+;; Object defines basic population construct and performs
+;; basic popualation operations: <initialize> <sort> <off2par>
+;; <print_pop> <print_fit>
+(defclass PopulationDC Population 
+  ((-idx1- (-double-)) pop_d)    ;;population of density parents
+  )
+
+;; Population <r> number of rows in popualation 
+;; <c> number of columns in population
+;; <l> length of a genome
+(defmethod PopulationDC PopulationDC(r c l)
+  (declare (-int-) r c l)
+  (cpheader "#include \"random.h\"")
+  (setq pop_d (double-array (* r c 2)))
+  (==> this Population r c l)
+)
+
+;;returns density of individual at position i
+(defmethod PopulationDC get_dens(i)
+  (declare (-int-) i)
+  (assert (and (< i (* m n 2)) (>= i 0)) 
+	  "POPULATION.GET_DENS: Index out of range")
+  (pop_d i))
+
+;;sets density at position i
+(defmethod PopulationDC set_dens(i d)
+  (declare (-int-) i)
+  (declare (-double-) d)
+  (assert (and (< i (* m n 2)) (>= i 0) (>= d 0))
+	  "POPULATION.SET_DENS: Index out of range")
+  (pop_d i d))
+
+;; initialize population densities uniformally distributed
+(defmethod PopulationDC init_d()
+  (array-clear fit 0)
+  (for* (i 0 (* m n))
+    (==> this set_dens i (to-double #{uniform()#}))))
+
+;; creates population of genomes from individual's density bias
+(defmethod PopulationDC create_genomes()
+    (array-clear fit 0)
+    (idx-bloop ((row pop)(indiv_dens pop_d))
+      (idx-bloop ((allele row))
+	(if (<= (to-double #{uniform()#}) (indiv_dens))
+	    (allele 1)
+	  (allele 0)))))
+
+(defmethod PopulationDC sort(dir)
+  (declare (-int-) dir)
+  ()
+)
+
+;; Copy over offspring to parents: both the genomes, densities and fitness.
+;; fitness vector is all 0s
+(defmethod PopulationDC off2par()
+  (let* ((s (* m n))
+	 (o_p (idx-shift (idx-trim* pop s) 0 s)) ;;index to pop offspring population
+	 (p_p (idx-trim* pop s))                 ;;index to pop parent population
+	 (o_d (idx-shift (idx-trim* pop_d s) 0 s)) ;;index to pop offspring population
+	 (p_d (idx-trim* pop_d s))                 ;;index to pop parent population
+	 (o_f (idx-shift (idx-trim* fit s) 0 s)) ;;index to fit offspring population
+	 (p_f (idx-trim* fit s)))                ;;index to fit parent population
+    (declare (-idx2- (-ubyte-)) o_p p_p)
+    (declare (-idx1- (-double-)) o_f p_f o_d p_d)
+    (array-copy o_p p_p)
+    (array-copy o_d p_d)
+    (array-copy o_f p_f)))
+
+(let ((dhc-make-lushflags (concat dhc-make-lushflags (sprintf " -I%s" PROJECTxDIR))))
+  (dhc-make-class () PopulationDC))
