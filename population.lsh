@@ -1,49 +1,45 @@
 (libload "libc/make")
-(libload "../random.lsh")
-(libload "../setup.lsh")
+;(libload "../random.lsh")
 (libload "idx-sort")
-(libload "libc/stdio.lsh")
 
 ;; Object defines basic population construct and performs
 ;; basic popualation operations: <initialize> <sort> <off2par>
 ;; <print_pop> <print_fit>
 (defclass Population object 
-  ((-idx2- (-ubyte-)) pop)       ;;population of binary parents and offspring
+  ((-idx2- (-uchar-)) pop)       ;;population of binary parents and offspring
   ((-idx1- (-double-)) fit)      ;;fitness values for population and offspring
-  ((-int-) m n g))               ;;m: #rows n: #columns g: #length of genome
+  ((-int-) size g))              ;;size: size of population g: #length of genome
 
-;; Population <r> number of rows in popualation 
-;; <c> number of columns in population
+;; Population <s> size of popualation 
 ;; <l> length of a genome
-(defmethod Population Population(r c l)
-  (declare (-int-) r c l)
+(defmethod Population Population(s l)
+  (declare (-int-) s l)
   (cpheader "#include \"random.h\"")
   ;#{seed_random(-1) #}
-  (setq pop (ubyte-array (* r c 2) l))
-  (setq fit (double-array (* r c 2)))
-  (setq m r)
-  (setq n c)
+  (setq pop (uchar-array s l))
+  (setq fit (double-array s))
+  (setq size s)
   (setq g l))
 
-;;returns a copy of a genome at position i
+;;returns a copy of a genome at position i in pop
 (defmethod Population get_genome(i)
   (declare (-int-) i)
-  (assert (and (< i (* m n 2)) (>= i 0)) 
+  (assert (and (< i size) (>= i 0))
 	  "POPULATION.GET_GENOME: Index out of range")
-  (array-copy (idx-select pop 0 i) (ubyte-array g)))
+  (array-copy (idx-select pop 0 i) (uchar-array g)))
 
-;;sets a genome at position i to value vect
+;;sets a genome at position i in pop to value vect
 (defmethod Population set_genome(i vect)
   (declare (-int-) i)
-  (declare (-idx1- (-ubyte-)) vect)
-  (assert (and (< i (* m n 2)) (>= i 0) (= g (idx-shape vect 0))) 
+  (declare (-idx1- (-uchar-)) vect)
+  (assert (and (< i size) (>= i 0) (= g (idx-shape vect 0))) 
 	  "POPULATION.SET_GENOME: Index out of range")
   (array-copy vect (idx-select pop 0 i)))
 
 ;;returns a fitness value of individual at position i
 (defmethod Population get_fitness(i)
   (declare (-int-) i)
-  (assert (and (< i (* m n 2)) (>= i 0)) 
+  (assert (and (< i size) (>= i 0)) 
 	  "POPULATION.GET_FITNESS: Index out of range")  
   (fit i))
 
@@ -51,7 +47,7 @@
 (defmethod Population set_fitness(i f)
   (declare (-int-) i)
   (declare (-double-) f)
-  (assert (and (< i (* m n 2)) (>= i 0) (>= f 0)) 
+  (assert (and (< i size) (>= i 0) (>= f 0)) 
 	  "POPULATION.SET_FITNESS: Index out of range or negative fitness")
   (fit i f))
 
@@ -83,56 +79,82 @@
 
 ;; print all fitness values in population
 (defmethod Population print_fit()
-  (for* (i 0 (* m n))
+  (for* (i 0 size)
     (declare (-int-) i)
     (printf "%f " (fit i))
-    (if (and (= (mod (+ i 1) n) 0) (<> i 0))
-	(printf "\n"))
+;; prints empty line for 2D pop
+;;    (if (and (= (mod (+ i 1) n) 0) (<> i 0))
+;;	(printf "\n"))
     ))
 
 ;;print all pop's genomes followed by fitness and density
+;;if fn is null, print to stdout, ow print to file
 (defmethod Population print_pop(fn)
   (declare (-gptr-) fn)
-  (for* (i 0 (* m n))
-    (declare (-int-) i)
-    (fprintf fn " %d " i)
-    (for* (j 0 g)
-      (fprintf fn "%d" (pop i j)))
-    (fprintf fn " h_fit: %f \n" (fit i)))
-  (fprintf fn "\n"))
+  (if (<> fn NULL)
+      (progn       ;;print to file pointed to by fn
+	(for* (i 0 size)
+	  (declare (-int-) i)
+	  (fprintf fn " %d " i)
+	  (for* (j 0 g)
+	    (declare (-int-) j)
+	    (fprintf fn "%d" (pop i j)))
+	  (fprintf fn " h_fit: %f \n" (fit i)))
+	(fprintf fn "\n"))
+    (progn         ;;print to stdout
+      (for* (i 0 size)
+	(declare (-int-) i)
+	(printf " %d " i)
+	(for* (j 0 g)
+	  (declare (-int-) j)
+	  (printf "%d" (pop i j)))
+	(printf " h_fit: %f \n" (fit i)))
+      (printf "\n"))
+    ))
+
+;; normalize fitness
+(defmethod Population normalize_fitness()
+  (let ((d_fitness 0))
+    (declare (-double-) d_fitness)
+    (setq d_fitness ((idx-sumacc fit [d@ 0])))
+    (for* (i 0 size)
+      (declare (-int-) i)
+      (fit i (/ (fit i) d_fitness)))
+    ))
 
 ;; returns value of the highest fitness value in population
 (defmethod Population get_highest_fitness()
-  ((idx-sup (idx-trim* fit (* m n))))
-)
+  ((idx-sup fit))
+  )
 
 ;; returns value of the lowest fitness value in population
 (defmethod Population get_lowest_fitness()
-  ((idx-inf (idx-trim* fit (* m n))))
-)
+  ((idx-inf fit))
+  )
 
 ;; return index of individual with highest fitness 
 ;; if there is more than one with the same highest fitness
 ;; choose one random among them.
 (defmethod Population select_best ()
-  (let ((best -1)
-	(f_best -1))
+  (let ((i_best -1)   ;;index of best indiv
+	(f_best -1))  ;;fitness of best indiv
     (declare (-double-) f_best)
-    (declare (-int-) best)
-    ;(setq f_best ((idx-sup fit)))
-    (for* (i 0 (* m n))
+    (declare (-int-) i_best)
+    (setq f_best (==> this get_highest_fitness))
+    (for* (i 0 size)
       (declare (-int-) i)
-      (when (>= (fit i) f_best)
-	(if (> (fit i) f_best)
-	    (progn (setq best i)
+      (when (= (fit i) f_best)
+ 	(if (< i_best 0)
+	    (progn (setq i_best i)
 		   (setq f_best (fit i)))
-	  (if (< (to-double #{uniform()#}) 0.002)
-	      (progn (setq best i)
+	  (if (< (to-double #{uniform()#}) 0.2)
+	      (progn (setq i_best i)
 		     (setq f_best (fit i))))
 	)))
-    best))
+   (assert (and (>= i_best 0) (< i_best size)) 
+	  "POPULATION.SET_FITNESS: Index out of range or negative fitness")
+    i_best))
 
-;; Not used for coevolution.
 ;; sort population of parents and offspring 
 ;; in dir=1 in decreasing order
 ;; in dir=0 in increasing order
@@ -166,16 +188,16 @@
 
 ;; Copy over offspring to parents: both the genomes, densities and fitness.
 ;; fitness vector is all 0s
-(defmethod Population off2par()
-  (let* ((s (* m n))
-	 (o_p (idx-shift (idx-trim* pop s) 0 s)) ;;index to pop offspring population
-	 (p_p (idx-trim* pop s))                 ;;index to pop parent population
-	 (o_f (idx-shift (idx-trim* fit s) 0 s)) ;;index to fit offspring population
-	 (p_f (idx-trim* fit s)))                ;;index to fit parent population
-    (declare (-idx2- (-ubyte-)) o_p p_p)
-    (declare (-idx1- (-double-)) o_f p_f)
-    (array-copy o_p p_p)
-    (array-copy o_f p_f)))
+;; (defmethod Population off2par()
+;;   (let* ((s (* m n))
+;; 	 (o_p (idx-shift (idx-trim* pop s) 0 s)) ;;index to pop offspring population
+;; 	 (p_p (idx-trim* pop s))                 ;;index to pop parent population
+;; 	 (o_f (idx-shift (idx-trim* fit s) 0 s)) ;;index to fit offspring population
+;; 	 (p_f (idx-trim* fit s)))                ;;index to fit parent population
+;;     (declare (-idx2- (-ubyte-)) o_p p_p)
+;;     (declare (-idx1- (-double-)) o_f p_f)
+;;     (array-copy o_p p_p)
+;;     (array-copy o_f p_f)))
 
 (let ((dhc-make-lushflags (concat dhc-make-lushflags (sprintf " -I%s" PROJECTxDIR))))
   (dhc-make-class () Population))

@@ -1,7 +1,6 @@
 (libload "libc/make")
-(libload "..\setup.lsh")
-;(libload (concat lushdir "/lsh/libc/constants.lsh"))
-
+(libload "setup.lsh")
+(libload "problem1.lsh")
 
 (let ((lm (new LushMake)))
   (==> lm rule "random.o" '("random.c"))

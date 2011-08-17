@@ -242,14 +242,14 @@
 ;; if prxcr=1: perform one point crossover of two parents folowed by 
 ;;              a bitwise mutation with bias <r>
 (defmethod Evolution reproduce(r p)
-  (let ((obj_rep (new GeneticAlgorithm))  ;;reproduction operator object
+  (let ((obj_rep (new GeneticOperators))  ;;reproduction operator object
 	(pop_size 0)
 	(i 0))
 
     (declare (-double-) r)
     (declare (-int-) i pop_size) 
     (declare (-obj- (Population)) p)
-    (declare (-obj- (GeneticAlgorithm)) obj_rep)
+    (declare (-obj- (GeneticOperators)) obj_rep)
     (setq pop_size (* m n))
 
     (cond 
@@ -276,14 +276,14 @@
 ;; individual in population
 ;; perform mutation as only reproduction operator with bitwise probability of <r>
 ;; (defmethod Evolution dbl_reproduce(r p)
-;;   (let ((obj_rep (new GeneticAlgorithm))  ;;reproduction operator object
+;;   (let ((obj_rep (new GeneticOperators))  ;;reproduction operator object
 ;; 	(pop_size 0)
 ;; 	(i 0))
 
 ;;     (declare (-double-) r)
 ;;     (declare (-int-) i pop_size) 
 ;;     (declare (-obj- (Population)) p)
-;;     (declare (-obj- (GeneticAlgorithm)) obj_rep)
+;;     (declare (-obj- (GeneticOperators)) obj_rep)
 ;;     (setq pop_size (* m n))
 
 ;;     (for* (i 0 pop_size)
