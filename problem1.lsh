@@ -1,0 +1,24 @@
+;; Simple example showing one way for objects to communicate
+
+(libload "libc/make")
+
+;;a dummy class defining problem
+;;method fitness encodes the problem and 
+;;returns a fitness value of how well a 
+;;binary genome performed on given problem
+
+(defclass problem object
+)
+
+(defmethod problem problem()
+()
+)
+
+;;problem is defined as looking for a genome
+;;with the largest number of 1s (perect solution
+;;is genome with all 1s
+(defmethod problem fitness (genome test)
+  (declare (-idx1- (-uchar-)) genome test)
+  ((idx-sum genome))
+)
+(dhc-make-class () problem)

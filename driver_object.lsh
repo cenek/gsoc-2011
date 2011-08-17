@@ -1,0 +1,28 @@
+(libload "libc/make")
+
+(defclass ob object
+  ((-idx1- (-uchar-)) ar)
+)
+
+(defmethod ob ob (a)
+  (declare (-idx1- (-uchar-)) a)
+  (setq ar (uchar-array (idx-shape a 0)))
+  (array-copy a ar)
+)
+(dhc-make-class () ob)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;testing the intercommunicate of two objects
+(defun test ()
+  (let* ((ob_problem (new problem))
+	 (ob_ga (new ga ob_problem))
+	 (ret 0))
+    (setq ret (==> ob_ga get_fitness [u 1 0 1 0 1 1 1]))
+    (printf "Value is: %d \n" ret)
+    (setq ret (==> ob_ga get_fitness [u 0 1 1 1 1 0 1 1 1 ]))
+    (printf "Value is: %d \n" ret)
+    ()
+))
+
+
