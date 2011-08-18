@@ -1,33 +1,84 @@
 (libload "libc/make")
 (libload "libc/stdio.lsh")
+(libload "libstd/kwdargs.lsh")
 (libload "setup.lsh")
 (libload "random.lsh")
-(libload "problem1.lsh")
+;(libload "problem1.lsh")
+;(libload "evolution.lsh")
 
-;; (defclass problem object
-;; )
+;; (let ((lm (new LushMake)))
+;;   (==> lm rule "random.o" '("random.c"))
+;;   (==> lm setflags "-lm")
+;;   (==> lm make)
+;;   (==> lm load))
 
-;; (defmethod problem problem()
-;; ())
+(let ((lm (new LushMake)))
+  (==> lm rule "torus.o" '("torus.c"))
+  (==> lm setflags "-lm")
+  (==> lm make)
+  (==> lm load))
 
-;; (defmethod problem fitness (g g)
-;;   (declare (-idx1- (-uchar-)) g)
-;;   ((idx-sum g)))
-
-;; (dhc-make-class () problem)
-
-(defclass ga object
-  ((-mptr-) ob_problem)
+(defclass GeneticAlgorithm object
+  ((-obj- (Problem)) ob_problem)
+  ((-double-) seed)
 )
 
-(defmethod ga ga(ob)
-  (declare (-mptr-) ob)
+(defmethod GeneticAlgorithm GeneticAlgorithm (ob)
+  (declare (-obj- (Problem)) ob)
   (setq ob_problem ob)
+  ;(cpheader "#include \"random.h\"")
+  ;(setq seed (to-double #{seed_random(-1) #}))
 )
 
-(defmethod ga get_fitness (genome)
-  (declare (-idx1- (-uchar-)) genome)	   
-  (==> (to-obj problem ob_problem) fitness genome genome)
+(defmethod GeneticAlgorithm get_fitness (genome)
+  (declare (-idx1- (-uchar-)) genome)
+;  (for* (i 0 (idx-shape genome 0))
+;    (printf "%d " (genome i)))
+  (==> ob_problem fitness genome genome)
 )
 
-(dhc-make-class () ga)
+(defmethod GeneticAlgorithm evolution (GENERATIONS HOSTxPOPxSIZE PARASxPOPxSIZE 
+						   HOSTxGENOME PARASxGENOME FN)
+
+  (declare (-int-) GENERATIONS HOSTxPOPxSIZE PARASxPOPxSIZE 
+	   HOSTxGENOME PARASxGENOME)
+  (declare (-str-) FN)
+  
+  (printf "count is: %d " (==> this get_fitness [u 1 2 3 4 5]))
+
+
+  ;(let* ((h (new Evolution )))
+    ;; (while (< i x)
+    ;;   (printf "G: %d Initial\n" i)
+    ;;   (==> ga sort)
+    ;;   (==> ga print)
+    ;;   (==> ga repro)
+    ;;   (==> ga eval)
+    ;;   (==> ga off2par)
+    ;;   (printf "New\n")
+    ;;   (==> ga print)
+    ;;   (incr i)
+    ;;   (print)
+    ;;   )
+
+    ;; (for (i 0 100) 
+    ;;   (setq l (nconc1 l (int (* (rand) 10))))
+    ;;   ;(print l)
+    ;;   )
+    ;; (print l)
+  ()
+)
+
+(defmethod GeneticAlgorithm spatial_evolution ()
+()
+)
+
+(defmethod GeneticAlgorithm coevolution ()
+()
+)
+
+(defmethod GeneticAlgorithm spatial_coevolution ()
+()
+)
+
+(dhc-make-class () GeneticAlgorithm)

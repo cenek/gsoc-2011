@@ -1,19 +1,36 @@
 (libload "libc/make")
 
-(defclass ob object
-  ((-idx1- (-uchar-)) ar)
+(defclass problem object
 )
 
-(defmethod ob ob (a)
-  (declare (-idx1- (-uchar-)) a)
-  (setq ar (uchar-array (idx-shape a 0)))
-  (array-copy a ar)
+(defmethod problem problem()
+()
 )
-(dhc-make-class () ob)
+
+(defmethod problem fitness (g &optional (i 0))
+   (declare (-idx1- (-uchar-)) g)
+   (declare (-int-) i)
+   ((idx-sum g))
+)
+(dhc-make-class () problem)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defclass ga object
+  ((-gptr-) pr)
+)
+
+(defmethod ga ga (p)
+  (setq pr p)
+)
+
+(defmethod ga get_fitness (g)
+  (declare (-idx1- (-uchar-)) g)
+  (==> pr fitness g)
+)
+(dhc-make-class () ga)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;testing the intercommunicate of two objects
+;;testing passing object and calling routines
 (defun test ()
   (let* ((ob_problem (new problem))
 	 (ob_ga (new ga ob_problem))

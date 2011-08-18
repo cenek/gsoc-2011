@@ -1,24 +1,24 @@
-;; Simple example showing one way for objects to communicate
-
-(libload "libc/make")
+;; Simple example defining a problem object with a fitness funtion.
 
 ;;a dummy class defining problem
 ;;method fitness encodes the problem and 
 ;;returns a fitness value of how well a 
 ;;binary genome performed on given problem
 
-(defclass problem object
+(defclass Problem object
 )
 
-(defmethod problem problem()
+(defmethod Problem Problem()
 ()
 )
 
 ;;problem is defined as looking for a genome
 ;;with the largest number of 1s (perect solution
 ;;is genome with all 1s
-(defmethod problem fitness (genome test)
+(defmethod Problem fitness (genome test)
   (declare (-idx1- (-uchar-)) genome test)
+;  (for* (i 0 (idx-shape genome 0))
+;    (printf "%d " (genome i)))
   ((idx-sum genome))
 )
-(dhc-make-class () problem)
+(dhc-make-class () Problem)

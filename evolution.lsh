@@ -1,14 +1,9 @@
 (libload "libc/make")
-(libload "../setup.lsh")
-(libload "../random.lsh")
 (libload "torus.lsh")
 (libload "population.lsh")
-(libload "population_rb.lsh")
-(libload "ga.lsh")
-;(libload "TestCa.lsh")
-(libload "RectBound.lsh")
-(libload "../v2str.lsh")
-(libload "libidx/idx-double")
+(libload "genetic_operators.lsh")
+;(libload "../v2str.lsh")
+;(libload "libidx/idx-double")
 
 ;;compilable function that reshapes 1D to 2D arrays returns 2D matrix
 (defun my-reshape (v nrows)
@@ -22,13 +17,13 @@
 (dhc-make "my_reshape" my-reshape)
 
 
-;; Object CoEvolution inherits TestCA inherits CellularAutomaton
+;; Object CoEvolution gets passed in object representing problem
+;; to be solved (object must contain get_fitness funtion 
 ;; Performs spatial coEvolution on populations of 
 ;; hosts and parasites (type of Population object)
-(defclass Evolution RectBound;;TestCa
-  ((-obj- (Population)) hosts)
-  ((-obj- (PopulationRB)) paras tests)
-  ((-int-) m n)
+(defclass Evolution object
+  ((-obj- (Population)) hosts paras)
+  ((-int-) hosts_size paras_size hosts_length paras_length)
   ((-gptr-) fn))
 
 
