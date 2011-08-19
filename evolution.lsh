@@ -22,22 +22,20 @@
 ;; hosts and parasites (type of Population object)
 (defclass Evolution object
   ((-obj- (Problem)) ob_problem)
-  ;((-int-) hosts_size paras_size hosts_length paras_length)
-  ;((-gptr-) fn)
 )
 
 
 ;; Constructor
 (defmethod Evolution Evolution(ob)
   (declare (-obj- (Problem)) ob) 
-  (setq ob_problem ob)
   (cpheader "#include \"random.h\"")
-  ;(cpheader "#include \"torus.h\"")
-()
-)
+  (setq ob_problem ob)
+  )
 
-;;assign fitness to population of hosts using method 'fitness' in Problem boject
-(defmethod Evolution evaluate (host paras FITNESSxSAMPLExSIZE)
+
+;;assign fitness to population of hosts and parasites using method 'fitness' 
+;;defined by user in Problem object
+(defmethod Evolution evaluate_coevolution (host paras FITNESSxSAMPLExSIZE)
   (declare (-obj- (Population)) host paras)
   (declare (-int-) FITNESSxSAMPLExSIZE) 
   (let* ((res 0) (ret1 0) (ret2 0)
@@ -50,10 +48,8 @@
     (declare (-int-) paras_size)
     (declare (-idx1- (-int-)) paras_fitness_count)
     (declare (-double-) res ret1 ret2)
-    ;(declare (-ptr-) ret)
 
     (for* (i 0 (==> host get_population_size))
-      ;(declare (-int-) i)
       (setq res 0)
       
       (for* (j 0 FITNESSxSAMPLExSIZE)   ;; sample tests to assess fitness
@@ -78,6 +74,27 @@
 				  (paras_fitness_count i))))
     ))
 
+;;assign fitness to population of hosts only using method 'fitness' 
+;;defined by user in Problem object - evaluate_evolution is same as 
+;;evaluate_coevolution except it does not assign parasite fitness
+(defmethod Evolution evaluate_evolution (host paras FITNESSxSAMPLExSIZE)
+  (declare (-obj- (Population)) host paras)
+
+  (let* ((res 0)
+	(paras_size (==> paras get_population_size)))        
+    (declare (-int-) FITNESSxSAMPLExSIZE paras_size)
+    (declare (-double-) res)
+
+    (for* (i 0 (==> host get_population_size))
+      (setq res 0)
+      (for* (j 0 FITNESSxSAMPLExSIZE)   ;; sample tests to assess fitness
+	;;keep track of host fitness
+	(setq res (+ res (nth 0 (==> ob_problem fitness (==> host get_genome i) 
+			   (==> paras get_genome (to-int #{r0n($paras_size)#})))))))
+      ;;assign host fitness
+      (==> host set_fitness i (/ res FITNESSxSAMPLExSIZE))     
+      )
+    ))
 
 ;;rank selection from tournament group w/ rank bias
 ;;always use tournament size of 9 to assign bias value as 0.5^rank
@@ -118,18 +135,15 @@
     (declare (-int-) tourn_size host_size)
 
     (for* (i 0 tourn_size)       ;populate tournamen group at random from host pop
-      ;(declare (-int-) i)
-      (group_index i (to-int #{r0n($host_size)#}))
+       (group_index i (to-int #{r0n($host_size)#}))
       (group_fitness i (==> host get_fitness (group_index i)))
       (swaps i i)
       )
 
     (array-sortdown! group_fitness swaps) ;sort increasing
     (for* (i 0 tourn_size)
-      ;(declare (-int-) k)
-      (cl_group_index i (group_index (swaps i)))
-	  ;(printf "i: %d  f: %f \n" (nei_in_cl k) (nei_fit k))
-      )
+      (cl_group_index i (group_index (swaps i))))
+      
     (array-copy cl_group_index group_index)
     ;;select P1 w/ rank bias from group and P2 w/o bias from group
     (list (group_index (==> this repro_rank_select)) 
@@ -146,7 +160,7 @@
     (declare (-int-) index)
     (setq slot_up (==> host get_fitness 0))
     (for* (i 0 (- (==> host get_population_size) 1))
-       ;;check if spin value is in current slot
+      ;;check if spin value is in current slot
       (if (and (> spin slot_down) (<= spin slot_up))
 	  (setq index i))
       ;;move to next wheel slot
@@ -182,28 +196,43 @@
   (declare (-obj- (Population)) host)
   (let ((ob_reproduce (new GeneticOperators))  ;;reproduction operator object
 	(pop_size (==> host get_population_size))
-	(host_offspring (clone-array (==> host get_population))))
+	(host_offspring (clone-array (==> host get_population)))
+	(i_best 0))
 
     (declare (-obj- (GeneticOperators)) ob_reproduce)
     (declare (-double-) HOSTxCR HOSTxMU)
-    (declare (-int-) ELITExSIZE REPRO pop_size) 
+    (declare (-int-) ELITExSIZE REPRO pop_size i_best) 
     (declare (-idx2- (-uchar-)) host_offspring)
-    ;copy elitest to offspring
+    
+    (assert (and (>= ELITExSIZE 0) (<= ELITExSIZE pop_size))
+	    "ELITExSIZE: Value must be >0 and < POPxSIZE")  
 
-    (if (> HOSTxCR 0)                          ;;use binary crossover then mutation
+    ;;copy elitest to offspring population
+    ;;although population is sorted accoring to fitness, select_best method
+    ;;will choose at random if there are many best inividuals with same fit
+    ;;one could just take ELITExSIZE number of indiv from the top of pop.
+    (for* (i 0 ELITExSIZE)
+      (setq i_best (==> host select_best))
+      (==> host set_fitness i_best (* -1 (==> host get_fitness i_best)))
+      (array-copy (==> host get_genome i_best)(idx-select host_offspring 0 i)))
+    (==> host set_population_fitness (idx-abs (==> host get_population_fitness)))
+	
+    ;reproduce population
+    ;;use binary crossover then mutation
+    (if (> HOSTxCR 0)       
       (progn 
-	(for* (i 0 pop_size)
+	(for* (i ELITExSIZE pop_size)
 	  (let ((sel (==> this repro_select host REPRO)))
-	    
-	    (array-copy (==> ob_reproduce mu           ;;mutate offspring
-			     (==> ob_reproduce cr      ;;select parent from neighborhood
+	    (array-copy (==> ob_reproduce mu      ;;mutate offspring
+			     (==> ob_reproduce cr ;;select parent from neighborhood
 				  (==> host get_genome (to-int (nth 0 sel)))
 				  (==> host get_genome (to-int (nth 1 sel))) HOSTxCR)
-			     HOSTxMU)                  ;;mutation probab
+			     HOSTxMU)             ;;mutation probab
 		 (idx-select host_offspring 0 i)
 		 ))))
-      (progn                                    ;;use only mutation
-	(for* (i 0 pop_size)
+      ;;use only mutation
+      (progn
+	(for* (i ELITExSIZE pop_size)
 	  (let ((sel (==> this repro_select host REPRO)))
 	    (array-copy (==> ob_reproduce mu   ;;mutate offspring
 			     (==> host get_genome (to-int (nth 0 sel)))

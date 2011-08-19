@@ -26,10 +26,17 @@
   ((-double-) seed HOSTxCR PARASxCR HOSTxMU PARASxMU)
   ((-int-) GENERATIONS HOSTxPOPxSIZE PARASxPOPxSIZE 
 	   HOSTxGENOME PARASxGENOME  FITNESSxSAMPLExSIZE 
-	   ELITExSIZE REPRODUCTIONxSELECTION)
+	   REPRODUCTIONxSELECTION)
   ((-gptr-) FN)
   ((-idx2- (-uchar-)) HOSTxPOPxINIT PARASxPOPxINIT)
 )
+
+;;Logging function for messages into stdio or file
+(defmethod GeneticAlgorithm log (note)
+  (declare (-str-) note)
+  (if (<> FN NULL)
+      (fprintf FN "%s" note)
+    (printf (sprintf "%s" note))))
 
 (defmethod GeneticAlgorithm GeneticAlgorithm (ob _GENERATIONS _HOSTxPOPxSIZE _PARASxPOPxSIZE _HOSTxGENOME _PARASxGENOME _FN)
   (cpheader "#include \"random.h\"")
@@ -46,7 +53,6 @@
       (setq FN (fopen _FN "wb"))
     (setq FN NULL))
   (setq FITNESSxSAMPLExSIZE 9)
-  (setq ELITExSIZE 0)
   (setq REPRODUCTIONxSELECTION 1)
   (setq HOSTxCR 1)
   (setq PARASxCR 1)
@@ -55,7 +61,8 @@
   (setq HOSTxPOPxINIT (uchar-array HOSTxPOPxSIZE HOSTxGENOME))
   (setq PARASxPOPxINIT (uchar-array PARASxPOPxSIZE PARASxGENOME))
   (setq seed (to-double #{seed_random(-1) #}))
-  (printf "To re-seed experiment, use absolute value of: %f to replicate this experiment\n" seed)
+  (==> this log (sprintf "To re-seed experiment, use absolute value of: %f to replicate this experiment\n" seed))
+  ;(printf "To re-seed experiment, use absolute value of: %f to replicate this experiment\n" seed)
 ()
 )
 
@@ -116,12 +123,12 @@
 ;;(==> GeneticAlgorithm set_elite_size <ELITExSIZE>) 
 ;;if value 0 no elitest copied during reproduction
 ;;if value ELITExSIZE>0 then ELITExSIZE top fitness genomes are copied to offspring pop
-(defmethod GeneticAlgorithm set_elite_size (_ELITExSIZE)
- (declare (-int-) _ELITExSIZE)
-  (assert (and (> _ELITExSIZE 0) (< _ELITExSIZE HOSTxPOPxSIZE))
-	  "ELITExSIZE: Value must be >0 and < POPxSIZE")
-  (setq ELITExSIZE _ELITExSIZE)
-)
+;; (defmethod GeneticAlgorithm set_elite_size (_ELITExSIZE)
+;;  (declare (-int-) _ELITExSIZE)
+;;   assert (and (> _ELITExSIZE 0) (< _ELITExSIZE HOSTxPOPxSIZE))
+;; 	  "ELITExSIZE: Value must be >0 and < POPxSIZE")
+;;   (setq ELITExSIZE _ELITExSIZE)
+;; )
 
 ;;(==> GeneticAlgorithm set_repro_selection <REPROxSELECTION>) 
 ;;if value 0 use random selection (w/o fitness bias)
@@ -135,12 +142,6 @@
   (setq REPRODUCTIONxSELECTION _REPRODUCTIONxSELECTION)
 )
 
-(defmethod GeneticAlgorithm log (note)
-  (declare (-str-) note)
-  (if (<> FN NULL)
-      (fprintf FN "%s" note)
-    (printf (sprintf "%s" note))))
-
 ;;(==> GeneticAlgorithm set_population <HOSTxPOPxINIT> <PARASxPOPxINIT>
 ;;initializes populations of hosts and parasites to predefined arrays rather than random
 ;;Arrays must have size HOSTxPOPxSIZE by HOSTxGENOME and PARASxPOPxSIZE by PARASxGENOME respectively.)
@@ -152,8 +153,59 @@
   (array-copy _HOSTxPOPxINIT HOSTxPOPxINIT)
   (array-copy _PARASxPOPxINIT PARASxPOPxINIT))
 
-(defmethod GeneticAlgorithm evolution (_HOSTxINIT _PARASxINIT)
+(defmethod GeneticAlgorithm evolution (_HOSTxINIT _PARASxINIT _ELITExSIZE)
   (declare (-double-) _HOSTxINIT _PARASxINIT)
+  (declare (-int-) _ELITExSIZE)
+  (let* ((host (new Population HOSTxPOPxSIZE HOSTxGENOME))
+	 (paras (new Population PARASxPOPxSIZE PARASxGENOME))
+	 (evo (new Evolution ob_problem))
+	 (reinit_flag _PARASxINIT))
+    (declare (-obj- (Population)) host paras)
+    (declare (-obj- (Evolution)) evo)
+    ;(declare (-double-) reinit_flag)
+    
+    (assert (and (> _HOSTxINIT -1) (< _HOSTxINIT 1)
+		 (> _PARASxINIT -1) (< _PARASxINIT 1))
+	    "HOSTxINIT or PARASxINIT: Values out of bounds <-1, 1>")
+    ;initialize hosts
+    (==> host init _HOSTxINIT)
+    (if (< _HOSTxINIT 0)
+	(==> host set_population HOSTxPOPxINIT)
+      (array-copy (==> host get_population) HOSTxPOPxINIT))
+
+    ;initialize parasites
+    (==> paras init _PARASxINIT)
+    (if (< _PARASxINIT 0)
+	(==> paras set_population PARASxPOPxINIT)
+      (array-copy (==> paras get_population) PARASxPOPxINIT))
+    
+    ;;run evolution loop
+    (for* (i 0 GENERATIONS)
+      ;(declare (-int-) i)
+      ;assign host fitness 
+      (==> evo evaluate_evolution host paras FITNESSxSAMPLExSIZE)
+      ;normalize host fitness to <0,1)
+      (==> host normalize_fitness)
+      ;sort host population 
+      (==> host sort_population 0) ;descending
+      ;reproduce hosts
+      (==> this log (sprintf "G: %d\n hosts: \n" i ))
+      ;print host population
+      (==> host print_population FN)
+      (==> this log (sprintf "paras: \n"))
+      ;print paras population
+      (==> paras print_population FN)
+      (==> evo reproduce host HOSTxCR HOSTxMU _ELITExSIZE REPRODUCTIONxSELECTION)
+      ;reinitialize parasites
+      (if (< _PARASxINIT 0)
+	  (==> ob_problem paras_init (==> paras get_population))
+	(==> paras init _PARASxINIT))
+      )
+    ))
+
+(defmethod GeneticAlgorithm coevolution (_HOSTxINIT _PARASxINIT _ELITExSIZE)
+  (declare (-double-) _HOSTxINIT _PARASxINIT)
+  (declare (-int-) _ELITExSIZE)
   (let* ((host (new Population HOSTxPOPxSIZE HOSTxGENOME))
 	 (paras (new Population PARASxPOPxSIZE PARASxGENOME))
 	 (evo (new Evolution ob_problem))
@@ -181,7 +233,7 @@
     (for* (i 0 GENERATIONS)
       (declare (-int-) i)
       ;assign host fitness 
-      (==> evo evaluate host paras FITNESSxSAMPLExSIZE)
+      (==> evo evaluate_coevolution host paras FITNESSxSAMPLExSIZE)
       ;normalize host fitness to <0,1)
       (==> host normalize_fitness)
       ;sort host population 
@@ -190,21 +242,17 @@
       (==> this log (sprintf "G: %d\n hosts: \n" i ))
       ;print host population
       (==> host print_population FN)
+      ;normalize paras fitness to <0,1)
+      (==> paras normalize_fitness)
+      ;sort paras population 
+      (==> paras sort_population 0) ;descending
       (==> this log (sprintf "paras: \n"))
       ;print paras population
       (==> paras print_population FN)
-      (==> evo reproduce host HOSTxCR HOSTxMU ELITExSIZE REPRODUCTIONxSELECTION)
-      ;reinitialize parasites
-      (if (< _PARASxINIT 0)
-	  (==> ob_problem paras_init (==> paras get_population))
-	(==> paras init _PARASxINIT))
+      (==> evo reproduce host HOSTxCR HOSTxMU _ELITExSIZE REPRODUCTIONxSELECTION)
+      (==> evo reproduce paras PARASxCR PARASxMU _ELITExSIZE REPRODUCTIONxSELECTION)
       )
     ))
-
-(defmethod GeneticAlgorithm coevolution ()
-()
-)
-
 
 (defmethod GeneticAlgorithm spatial_evolution ()
 ()

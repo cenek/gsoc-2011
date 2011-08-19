@@ -9,9 +9,14 @@
 (defun test ()
   (help)
   (let* ((pr (new Problem))
-	 (ga (new GeneticAlgorithm pr 10 10 10 75 0 "" )))
+	 (ga (new GeneticAlgorithm pr 2 10 10 75 50 "" )))
 
-    (==> ga evolution 0.5 0.0)
+    ;;Run non-spatial evolution (standard evolution)
+    ;(==> ga evolution 0.5 0.0 3)
+    ;;Run non-spatial evolution (standard evolution)
+    ;(==> ga set_host_mutation 0.2)
+    ;(==> ga set_paras_mutation 0.2)
+    (==> ga coevolution 0.5 0.0 3)
     ))
 
 (defun help()

@@ -49,10 +49,11 @@
   (fit i))
 
 ;;sets a value of individual at position i to value f
+;; fitness value f can be negative
 (defmethod Population set_fitness(i f)
   (declare (-int-) i)
   (declare (-double-) f)
-  (assert (and (< i size) (>= i 0) (>= f 0)) 
+  (assert (and (< i size) (>= i 0)) 
 	  "POPULATION.SET_FITNESS: Index out of range or negative fitness")
   (fit i f))
 
@@ -70,6 +71,14 @@
 
 ;;gets fitness of the entire population
 (defmethod Population get_population_fitness() fit)
+
+;;sets fitness of the entire population
+(defmethod Population set_population_fitness(f)
+  (declare (-idx1- (-double-)) f)
+  (assert (same-shape-p f fit)
+	  "POPULATION.SET_POPULATION_FITNESS: Arrays have incompatible sizes")
+  (array-copy f fit))
+
 
 ;; initialize population genome with bias <r>
 ;; sets population fitness to 0
@@ -172,7 +181,7 @@
 		     (setq f_best (fit i))))
 	)))
    (assert (and (>= i_best 0) (< i_best size)) 
-	  "POPULATION.SET_FITNESS: Index out of range or negative fitness")
+	  "POPULATION.SELECT_BEST: Index out of range or negative fitness")
     i_best))
 
 ;; sort population of parents and offspring 
