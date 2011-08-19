@@ -1,11 +1,9 @@
 (libload "libc/make")
 
-;;compile random number generator library
 (let ((lm (new LushMake)))
   (==> lm rule "random.o" '("random.c"))
   (==> lm setflags "-lm")
   (==> lm make)
   (==> lm load))
-
 
 

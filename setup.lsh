@@ -4,9 +4,9 @@
 ;(defvar KILLxMExNOW ())          ;;global variable used for stopping any part of app.
 
 ;;reproduction operators
-(defconstant PRxHMU 0.004)  ;;probability of bitwise mutation in hosts
-(defconstant PRxPMU 0.12)   ;;probability of bitwise mutation in paras/or density variation
-(defconstant PRxCR  1.00)   ;;probability of crossover: 1 use crossover then mutation
+;(defconstant PRxHMU 0.004)  ;;probability of bitwise mutation in hosts
+;(defconstant PRxPMU 0.12)   ;;probability of bitwise mutation in paras/or density variation
+;(defconstant PRxCR  1.00)   ;;probability of crossover: 1 use crossover then mutation
                             ;;                          0 use mutation only
 (defconstant RUNxCOEVOLUTION 0);1   ;;1:run coevolution; 0:run evolution
 (defconstant DBLxCOEVOLUTION 0)   ;;0:run normal coevol (must be spatial=1 coev=1 dblCoev=1)

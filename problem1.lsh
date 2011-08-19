@@ -17,8 +17,14 @@
 ;;is genome with all 1s
 (defmethod Problem fitness (genome test)
   (declare (-idx1- (-uchar-)) genome test)
-;  (for* (i 0 (idx-shape genome 0))
-;    (printf "%d " (genome i)))
-  ((idx-sum genome))
+  (list ((idx-sum genome)) 0)
 )
+
+;;reinitialize parasite population
+;; do it inplace by changing <pop> array
+(defmethod Problem paras_init(pop)
+  (declare (-idx2- (-uchar-)) pop)
+  ()
+)
+
 (dhc-make-class () Problem)

@@ -22,8 +22,9 @@
 ;; <p1> parent one used for crossover
 ;; <p2> parent two used for crossover
 ;; output is a copy of a randomly selected offspring
-(defmethod GeneticOperators cr (p1 p2)
+(defmethod GeneticOperators cr (p1 p2 PRxCR)
   (declare (-idx1- (-ubyte-)) p1 p2)
+  (declare (-double-) PRxCR)
   ;; parents must have same length
   (assert (= (idx-shape p1 0) (idx-shape p2 0)) 
 	  "CROSSOVER: parent of different length")
