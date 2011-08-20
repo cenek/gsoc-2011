@@ -1,5 +1,4 @@
 (libload "libc/make")
-;(libload "../random.lsh")
 (libload "libidx/idx-sort.lsh")
 
 ;; Object defines basic population construct and performs
@@ -201,15 +200,9 @@
     
     (for* (i 0 size) (swaps i i))         ;init swap vector
      
-;(printf"after init\n")
-;    (for* (i 0 size)(printf "%d " (swaps i)))
-
     (if (= dir 0)
 	(array-sortdown! fit swaps)
       (array-sortup! fit swaps))          ;;sort and record swaps in swaps
-
-;(printf"after sort\n")
-;    (for* (i 0 size)(printf "%d " (swaps i)))
 
     ;;according to recorded swaps in swaps move pop to cl_pop    
     (for* (i 0 size)

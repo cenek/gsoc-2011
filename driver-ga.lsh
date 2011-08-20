@@ -3,20 +3,18 @@
 (libload "problem1.lsh")
 (libload "ga.lsh")
 
-
-;(setq ob_problem (new Problem))
-
 (defun test ()
   (help)
   (let* ((pr (new Problem))
-	 (ga (new GeneticAlgorithm pr 2 10 10 75 50 "" )))
+	 (ga (new GeneticAlgorithm pr 20 10 10 75 50 "" )))
 
     ;;Run non-spatial evolution (standard evolution)
     ;(==> ga evolution 0.5 0.0 3)
     ;;Run non-spatial evolution (standard evolution)
     ;(==> ga set_host_mutation 0.2)
     ;(==> ga set_paras_mutation 0.2)
-    (==> ga coevolution 0.5 0.0 3)
+    ;(==> ga coevolution 0.5 0.0 3)
+    (==> ga evolution_spatial 0.5 0.0)
     ))
 
 (defun help()
@@ -34,7 +32,7 @@
   (printf "\n")
   (printf "In addition to parameters passed into object methods, internal parameters are calculated and reset as following:\n")
   (printf "(==> GeneticAlgorithm set_host_mutation <HOSTxMU>) bitwise mutation probability for solution/host genome. If unset it is 1/HOSTxGENOME\n")
-  (printf "(==> GeneticAlgorithm set_paras_mutation <pARASxMU>) bitwise mutation probability for test/parasite genome. If unset it is 1/PARASxGENOME\n")
+  (printf "(==> GeneticAlgorithm set_paras_mutation <PARASxMU>) bitwise mutation probability for test/parasite genome. If unset it is 1/PARASxGENOME\n")
   (printf "(==> GeneticAlgorithm set_host_crossover <HOSTxCR>) probability of using one point crossover as reproduction operator for solution/host population.  If unset it is 1 (always reproduce by 1pt crossover followed by a bitwise mutation) set to 0 for mutation reproduction only\n")
   (printf "(==> GeneticAlgorithm set_paras_crossover <PARASxCR>) same as set_host_crossover but for test/parasite population.\n")
   (printf "---------------------------------------------------------------\n")
@@ -42,9 +40,10 @@
   (printf "(==> GeneticAlgorithm evolution <HOSTSxINIT> <PARASxINIT>) \n")
   (printf "<HOSTSxINIT> - initialization of host at random \n")
   (printf "      if value (0,1) each genome will be randomly initialized with a binomial density equal to value passed in. \n")
-  (printf "      if value 0, each genomw will be randomly initialized and the entire population have normally distributed density (each genome with different density\n")
+  (printf "      if value 0, each genome will be randomly initialized and the entire population have uniformally distributed density (each genome with different density\n")
   (printf "      if value -1, initialized populations from predefined arrays. Array must be initialized\n")
   (printf"                    by (==> GeneticAlgorithm set_populations <HOSTxPOPxINIT> <PARASxPOPxINIT> before call to \"evolution\" method.\n")
   (printf"                    Arrays must have size  (HOSTxPOPxSIZE by HOSTxGENOME and PARASxPOPxSIZE by PARASxGENOME respectively.)\n")
+  (printf"                    Parasite population will be reinitialized at each evolutionary step by calling (==> Problem paras_init<pop>)\n")
 
 )

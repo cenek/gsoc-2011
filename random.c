@@ -17,6 +17,11 @@
 
 static long id;
 
+long set_seed(long id_ext){
+  id = id_ext;
+  return id;
+}
+
 /*float uniform(long *idum)*/
 float uniform(){
   int j;

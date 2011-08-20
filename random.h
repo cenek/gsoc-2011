@@ -3,6 +3,7 @@
 
 //long idum;
 
+long set_seed(long);
 float uniform();
 float normal();
 float expdev();

@@ -1,21 +1,5 @@
 (libload "libc/make")
 (libload "genetic_operators.lsh")
-;(libload "problem1.lsh")
-;(libload "../v2str.lsh")
-;(libload "libidx/idx-double")
-
-;;compilable function that reshapes 1D to 2D arrays returns 2D matrix
-;; (defun my-reshape (v nrows)
-;;   (declare (-idx1- (-ubyte-)) v)
-;;   (declare (-int-) nrows)
-;;   (let ((ncols (div (length v) nrows)))
-;;     (when (<> (length v) (* nrows ncols))
-;;       (error "cannot reshape") )
-;;     (new-index (idx-storage v) (list nrows ncols)) ))
-
-;; (dhc-make "my_reshape" my-reshape)
-
-
 ;; Object CoEvolution gets passed in object representing problem
 ;; to be solved (object must contain get_fitness funtion 
 ;; Performs spatial coEvolution on populations of 

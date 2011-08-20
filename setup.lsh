@@ -1,13 +1,6 @@
 ;;setup file contains parameters for experiments 
 (defparameter PROJECTxDIR (pwd)) ;;project directory used for relative file names
-;(defconstant FN "/disk/trump/martin/results/ga/RectBound_NSEV_run102010.txt")
-;(defvar KILLxMExNOW ())          ;;global variable used for stopping any part of app.
 
-;;reproduction operators
-;(defconstant PRxHMU 0.004)  ;;probability of bitwise mutation in hosts
-;(defconstant PRxPMU 0.12)   ;;probability of bitwise mutation in paras/or density variation
-;(defconstant PRxCR  1.00)   ;;probability of crossover: 1 use crossover then mutation
-                            ;;                          0 use mutation only
 (defconstant RUNxCOEVOLUTION 0);1   ;;1:run coevolution; 0:run evolution
 (defconstant DBLxCOEVOLUTION 0)   ;;0:run normal coevol (must be spatial=1 coev=1 dblCoev=1)
                              ;;1:paras defined as density val. Dens evolved +/- <0,prxpmu> 
@@ -19,9 +12,4 @@
 (defconstant POPxHOSTxCOLUMNS  20) ;;number of columns for ecolution grid
 (defconstant POPxPARASxROWS    20) ;;number of rows for evolution grid - used for evolution
 (defconstant POPxPARASxCOLUMNS 20) ;;number of columns for ecolution grid - used for evolution
-(defconstant FITxSAMPLE        20)  ;;for NS evolution: Number of parasites used for fitness
-                                   ;;fix in coev constructor - hardcoded 10x10 population!!
-
-(defconstant DENSITYxBINOMIAL 0.5) ;;initial density bias for hosts (binomial distr)
-(defconstant DENSITYxUNIFORM 0)    ;;initial density bias for paras (uniform distr)
 
