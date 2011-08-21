@@ -1,5 +1,0 @@
-;;compile torus object for boundary conditions
-(let ((lm (new LushMake)))
-  (==> lm rule "torus.o" '("torus.c"))
-  (==> lm make)
-  (==> lm load))
