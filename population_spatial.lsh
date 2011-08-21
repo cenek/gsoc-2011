@@ -5,11 +5,9 @@
 ;; basic popualation operations: <initialize> <sort> <off2par>
 ;; <print_population> <print_fit>
 (defclass PopulationSP object 
-  ;physical storage
-  ((-idx3- (-uchar-)) pop*)        ;;population of binary parents and offspring
   ;index w/o borders
-  ((-idx3- (-uchar-)) pop pop_nei) ;;population of binary parents and offspring
-  ((-idx2- (-double-)) fit fit_nei);;fitness values for population and offspring
+  ((-idx3- (-uchar-)) pop pop* pop_nei) ;;population of binary parents and offspring
+  ((-idx2- (-double-)) fit fit* fit_nei);;fitness values for population and offspring
   ((-int-) row col x y size g))  ;;size: size of population g: #length of genome
                                  ;;row/col shape of spatial pop, x/y return variables
 
@@ -26,10 +24,65 @@
   (setq y 0)
   (setq pop* (uchar-array (+ row 2) (+ col 2) g))
   (setq pop_nei (uchar-array 3 3 g))
-  (setq fit (double-array row col))
+  (setq fit* (double-array (+ row 2) (+ col 2)))
   (setq fit_nei (double-array 3 3))
   (setq pop (idx-shift* (idx-trim* pop* row col) 1 1))
+  (setq fit (idx-shift* (idx-trim* fit* row col) 1 1))
   )
+
+;;update the borders in the physical population storage to simulate warparound
+;;boundary condition in the population.
+(defmethod PopulationSP update_borders_population()
+  (assert (idx-contiguousp pop*))
+
+  ;update borders in genome population
+  ;copy over rows
+  (array-copy (idx-select pop* 0 1) (idx-select pop* 0 (+ row 1)))
+  (array-copy (idx-select pop* 0 row) (idx-select pop* 0 0))
+  (array-copy (idx-select pop* 1 1) (idx-select pop* 1 (+ col 1)))
+  (array-copy (idx-select pop* 1 col) (idx-select pop* 1 0))
+  ;copy over corners
+  (array-copy (idx-select* pop* row col) (idx-select* pop* 0 0))
+  (array-copy (idx-select* pop* 1 col) (idx-select* pop* (+ row 1) 0))
+  (array-copy (idx-select* pop* 1 1) (idx-select* pop* (+ row 1) (+ col 1)))
+  (array-copy (idx-select* pop* row 1) (idx-select* pop* 0 (+ col 1)))
+  ;;print physical storage of genome population with borders
+  ;; (for* (i 0 (+ row 2))
+  ;;   (for* (j 0 (+ col 2))
+  ;;     (declare (-int-) i j)
+  ;;     (printf " %d:%d " i j)
+  ;;     (for* (k 0 g)
+  ;; 	(declare (-int-) k)
+  ;; 	(printf "%d " (pop* i j k)))
+  ;;     (printf "\n" ))
+  ;; (printf "\n"))
+)
+
+;;update the borders in the physical population storage to simulate warparound
+;;boundary condition in fitness.
+(defmethod PopulationSP update_borders_fitness()
+  (assert (idx-contiguousp fit*))
+
+  ;update borders in fitness array
+  ;copy over rows
+  (array-copy (idx-select fit* 0 1) (idx-select fit* 0 (+ row 1)))
+  (array-copy (idx-select fit* 0 row) (idx-select fit* 0 0))
+  (array-copy (idx-select fit* 1 1) (idx-select fit* 1 (+ col 1)))
+  (array-copy (idx-select fit* 1 col) (idx-select fit* 1 0))
+  ;copy over corners
+  (fit* 0 0 (fit* row col))
+  (fit* (+ row 1) 0 (fit* 1 col))
+  (fit* (+ row 1) (+ col 1) (fit* 1 1))
+  (fit* 0 (+ col 1) (fit* row 1))
+
+  ;;print physical storage of fitness population with borders
+  ;; (for* (i 0 (+ row 2))
+  ;;   (for* (j 0 (+ col 2))
+  ;;     (declare (-int-) i j)
+  ;;     (printf " %f " (fit* i j)))
+  ;;     (printf "\n" ))
+  ;; (printf "\n")
+)
 
 ;;returns size of population
 ;(defmethod PopulationSP get_population_size() size)
@@ -99,9 +152,9 @@
 (defmethod PopulationSP set_fitness_global(i j f)
   (declare (-int-) i j)
   (declare (-double-) f)
-  (assert (and (< i size) (>= i 0)) 
-	  "POPULATION.SET_FITNESS: Index out of range or negative fitness")
-  (fit i f))
+  (assert (and (< i row) (>= i 0)(< j col) (>= j 0))
+	  "POPULATION.SET_FITNESS_GLOBAL: Index out of range or negative fitness")
+  (fit i j f))
 
 ;;sets a value of individual at position i j to value f from local neighborhood
 (defmethod PopulationSP set_fitness_nei(i j _nei f)
@@ -119,7 +172,8 @@
   (assert (same-shape-p p pop)
 	  "POPULATION.SET_POPULATION: Arrays have incompatible sizes")
   (array-copy p pop)
-  (array-clear fit 0))
+  (==> this update_borders_population)
+  (array-clear fit* 0))
 
 ;;gets the population pop
 (defmethod PopulationSP get_population() pop)
@@ -132,38 +186,9 @@
   (declare (-idx2- (-double-)) f)
   (assert (same-shape-p f fit)
 	  "POPULATION.SET_POPULATION_FITNESS: Arrays have incompatible sizes")
-  (array-copy f fit))
-
-;;update the borders in the physical population storage to simulate warparound
-;;boundary condition in the population.
-(defmethod PopulationSP update_borders()
-  ;copy over rows
-  (array-copy (idx-select pop* 0 1) (idx-select pop* 0 (+ row 1)))
-  (array-copy (idx-select pop* 0 row) (idx-select pop* 0 0))
-  (array-copy (idx-select pop* 1 1) (idx-select pop* 1 (+ col 1)))
-  (array-copy (idx-select pop* 1 col) (idx-select pop* 1 0))
-  ;copy over corners
-  (array-copy (idx-select* pop* row col) (idx-select* pop* 0 0))
-  (array-copy (idx-select* pop* 1 col) (idx-select* pop* (+ row 1) 0))
-  (array-copy (idx-select* pop* 1 1) (idx-select* pop* (+ row 1) (+ col 1)))
-  (array-copy (idx-select* pop* row 1) (idx-select* pop* 0 (+ col 1)))
-  
-  (for* (i 0 (+ row 2))
-    (for* (j 0 (+ col 2))
-      (declare (-int-) i j)
-      (printf " %d:%d " i j)
-      (for* (k 0 g)
-	(declare (-int-) k)
-	(printf "%d " (pop* i j k)))
-      (printf "\n" ))
-  (printf "\n"))
+  (array-copy f fit)
+  (==> this update_borders_fitness)
 )
-;(libload "driver-ga.lsh")
-;(libload "population_spatial.lsh")
-;(setq p (new PopulationSP 9 2))
-;(==> p set_population (as-uchar-array (idx-reshape (arange 18) '(3 3 2))))
-;(==> p print_population (to-gptr NULL))
-;(==> p update_borders)
 
 ;; initialize population genome with bias <r>
 ;; sets population fitness to 0
@@ -182,8 +207,8 @@
 	(if (<= (to-double #{uniform()#}) r)
 	    (allele 1)
 	  (allele 0))))))
+  (==> this update_borders_population)
   ())
-
   
 ;; Print individual's genome
 (defmethod PopulationSP print_genome (p)
@@ -208,7 +233,7 @@
 	(for* (i 0 row)
 	  (for* (j 0 col)
 	    (declare (-int-) i j)
-	    (fprintf fn " %d:%d" i j)
+	    (fprintf fn " %d:%d " i j)
 	    (for* (k 0 g)
 	      (declare (-int-) k)
 	      (fprintf fn "%d" (pop i j k)))
@@ -226,16 +251,6 @@
       (printf "\n"))
     ))
 
-;; normalize fitness
-;; (defmethod PopulationSP normalize_fitness()
-;;   (let ((d_fitness 0))
-;;     (declare (-double-) d_fitness)
-;;     (setq d_fitness ((idx-sumacc fit [d@ 0])))
-;;     (for* (i 0 row)
-;;       (for* (i 0 row)
-;;       (declare (-int-) i)
-;;       (fit i (/ (fit i) d_fitness)))
-;;     ))
 
 ;; returns value of the highest fitness value in population
 (defmethod PopulationSP get_highest_fitness()
@@ -275,36 +290,6 @@
     (setq x i_best)
     (setq y j_best)
     ))
-
-;; sort population of parents and offspring 
-;; in dir=0 in decreasing order
-;; in dir=1 in increasing order
-;; even though the sort routine is sorting up, the swaps are initialized
-;; from n-1 to 0
-;; (defmethod PopulationSP sort_population(dir)
-;;   (declare (-int-) dir)
-;;   (let* ((i (- size 1)) 
-;; 	 (cl_pop (copy-array pop))        ;;genome population clone
-;; 	 (swaps (int-array size)))        ;;vector recording swaps
-
-;;     (declare (-idx2- (-ubyte-)) cl_pop)
-;;     (declare (-idx1- (-int-)) swaps)
-;;     (declare (-int-) i )
-    
-;;     (for* (i 0 size) (swaps i i))         ;init swap vector
-     
-;;     (if (= dir 0)
-;; 	(array-sortdown! fit swaps)
-;;       (array-sortup! fit swaps))          ;;sort and record swaps in swaps
-
-;;     ;;according to recorded swaps in swaps move pop to cl_pop    
-;;     (for* (i 0 size)
-;;       (array-copy 
-;;        (idx-select* pop (swaps i)) 
-;;        (idx-select* cl_pop i))
-;;       )
-;;     (array-copy cl_pop pop))
-;;   ())
 
 (let ((dhc-make-lushflags (concat dhc-make-lushflags (sprintf " -I%s" PROJECTxDIR))))
   (dhc-make-class () PopulationSP))

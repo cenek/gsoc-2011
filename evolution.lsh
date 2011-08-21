@@ -6,6 +6,7 @@
 ;; hosts and parasites (type of Population object)
 (defclass Evolution object
   ((-obj- (Problem)) ob_problem)
+  ((-idx1- (-double-)) tmp_rank_sel)
 )
 
 
@@ -14,6 +15,7 @@
   (declare (-obj- (Problem)) ob) 
   (cpheader "#include \"random.h\"")
   (setq ob_problem ob)
+  (array-copy (vector 0 (** 0.5 1)(** 0.5 2)(** 0.5 3)(** 0.5 4)(** 0.5 5)(** 0.5 6)(** 0.5 7)(** 0.5 7)) tmp_rank_sel)
   )
 
 
@@ -76,13 +78,11 @@
 	(setq res (+ res (nth 0 (==> ob_problem fitness (==> host get_genome i) 
 			   (==> paras get_genome (to-int #{r0n($paras_size)#})))))))
       ;;assign host fitness
-      (==> host set_fitness i (/ res FITNESSxSAMPLExSIZE))     
+      (==> host set_fitness i (/ res FITNESSxSAMPLExSIZE))   
       )
     ))
 
-;;rank selection from tournament group w/ rank bias
-;;always use tournament size of 9 to assign bias value as 0.5^rank
-;;???improvement: figure out bias for individuals if tournament group size <> 9 
+;;select indiv with bias value as 0.5^rank - return its index
 (defmethod Evolution repro_rank_select ()
    (let ((spin 0)
 	 (slot_down 0)
@@ -91,15 +91,12 @@
     (declare (-double-) spin slot_up slot_down)
     (declare (-int-) index )
     (setq spin (to-double #{uniform()#}))
-    (setq slot_up (** 0.5 1))
+    (setq slot_up (tmp_rank_sel 1))
     (for* (i 1 8)
-;(printf "spin: %f sd:%f su%f\n" spin slot_down slot_up)
       (if (and (> spin slot_down) (<= spin slot_up))
 	  (setq index (- i 1)))
       (setq slot_down slot_up)
-      (setq slot_up (+ slot_up (** 0.5 (+ i 1)))))
-    ;(if (> index 8) (print " EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEROR\n"))
-    ;(printf "in: %d " index)
+      (incr slot_up (tmp_rank_sel (+ i 1))))
     index
     ))
 
@@ -124,7 +121,7 @@
       (swaps i i)
       )
 
-    (array-sortdown! group_fitness swaps) ;sort increasing
+    (array-sortdown! group_fitness swaps) ;sort decreasing
     (for* (i 0 tourn_size)
       (cl_group_index i (group_index (swaps i))))
       
@@ -136,6 +133,7 @@
     ))
 
 ;;biased roulette wheel selection
+;;fitness is already normalized w/ respect to the entire pop
 (defmethod Evolution repro_roulette (host)
   (declare (-obj- (Population)) host)
   (let* ((spin (to-double #{uniform()#}))
@@ -149,7 +147,7 @@
 	  (setq index i))
       ;;move to next wheel slot
       (setq slot_down slot_up)
-      (setq slot_up (+ slot_up (==> host get_fitness (+ i 1)))))
+      (incr slot_up (==> host get_fitness (+ i 1))))
     index
     ))
 

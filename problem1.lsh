@@ -20,10 +20,17 @@
   (list ((idx-sum genome)) ((idx-sum test)))
 )
 
-;;reinitialize parasite population
+;;reinitialize parasite population (non-spatial ev, and coev)
 ;; do it inplace by changing <pop> array
 (defmethod Problem paras_init(pop)
   (declare (-idx2- (-uchar-)) pop)
+  ()
+)
+
+;;reinitialize parasite population (spatial ev, and coev)
+;; do it inplace by changing <pop> array
+(defmethod Problem paras_init_spatial(pop)
+  (declare (-idx3- (-uchar-)) pop)
   ()
 )
 

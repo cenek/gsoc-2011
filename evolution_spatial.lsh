@@ -6,6 +6,8 @@
 ;; hosts and parasites (type of Population object)
 (defclass EvolutionSP object
   ((-obj- (Problem)) ob_problem)
+  ((-idx1- (-double-)) tmp_fit tmp_rank_sel)
+  ((-idx2- (-int-)) tmp_index)
 )
 
 
@@ -14,75 +16,185 @@
   (declare (-obj- (Problem)) ob) 
   (cpheader "#include \"random.h\"")
   (setq ob_problem ob)
-  )
+  (setq tmp_fit (double-array 9))
+  (setq tmp_rank_sel (double-array 9))
+  (setq tmp_index (int-array 9 2))
+  (array-copy [i [0 0] [0 1][0 2][1 0][1 1][1 2][2 0][2 1][2 2]] tmp_index)
+  (array-copy (vector 0 (** 0.5 1)(** 0.5 2)(** 0.5 3)(** 0.5 4)(** 0.5 5)(** 0.5 6)(** 0.5 7)(** 0.5 7)) tmp_rank_sel)
+)
 
 ;;assign fitness to population of hosts only using method 'fitness' 
 ;;defined by user in Problem object - evaluate_evolution is same as 
 ;;evaluate_coevolution except it does not assign parasite fitness
 (defmethod EvolutionSP evaluate_evolution (host paras FITNESSxSAMPLExSIZE)
   (declare (-obj- (PopulationSP)) host paras)
-
   (let* ((res 0)
-	(paras_size (==> paras get_population_size)))
-    (declare (-int-) FITNESSxSAMPLExSIZE paras_size)
+	 (row (==> host get_population_row))
+	 (col (==> host get_population_col))
+	 (host_genome (ubyte-array (==> host get_genome_length)))
+	 (paras_genome (ubyte-array (==> paras get_genome_length)))
+	 (nei_pop_paras(idx-shift* (idx-trim* (==> paras get_population) 
+					      3 3) -1 -1)) ;3x3 genome neigh 
+	)
+    (declare (-int-) FITNESSxSAMPLExSIZE row col)
     (declare (-double-) res)
+    (declare (-idx1- (-uchar-)) host_genome paras_genome)
+    (declare (-idx3- (-uchar-)) nei_pop_paras)
 
-    (for* (i 0 (==> host get_population_size))
-      (setq res 0)
-      (for* (j 0 FITNESSxSAMPLExSIZE)   ;; sample tests to assess fitness
-	;;keep track of host fitness
-	(setq res (+ res (nth 0 (==> ob_problem fitness (==> host get_genome i) 
-			   (==> paras get_genome (to-int #{r0n($paras_size)#})))))))
-      ;;assign host fitness
-      (==> host set_fitness i (/ res FITNESSxSAMPLExSIZE))     
-      )
+    (==> paras update_borders_population)
+
+    (unprotect      ;;disable bounds checking
+     (for* (i 0 row)
+       (for* (j 0 col)   ;; sample tests to assess fitness
+	 (declare (-int-) i j)
+	 (setq res 0)
+	 ;get host's genome
+	 (setq host_genome (==> host get_genome_global i j))
+	 ;test current host on all parasites in the neighborhood
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+			       (==> paras get_genome_nei 0 0 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 0 1 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 0 2 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 1 0 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 1 1 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 1 2 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 2 0 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 2 1 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 2 2 nei_pop_paras))))
+	 ;assign fitness to host
+	 (==> host set_fitness_global i j (/ res FITNESSxSAMPLExSIZE))
+
+	 (idx-shift! nei_pop_paras 1 1)     ;shift neibhorhood R by one
+	 )
+       (idx-shift! nei_pop_paras 1 (- col)) ;row-rewind
+       (idx-shift! nei_pop_paras 0 1)       ;move one row down 
+       )
+     )
     ))
 
 ;;assign fitness to population of hosts and parasites using method 'fitness' 
 ;;defined by user in Problem object
+;;assign fitness to population of hosts only using method 'fitness' 
+;;defined by user in Problem object - evaluate_evolution is same as 
+;;evaluate_coevolution except it does not assign parasite fitness
 (defmethod EvolutionSP evaluate_coevolution (host paras FITNESSxSAMPLExSIZE)
-  (declare (-obj- (Population)) host paras)
-  (declare (-int-) FITNESSxSAMPLExSIZE) 
-  (let* ((res 0) (ret1 0) (ret2 0)
-	 ;(ret '())
-	(paras_size (==> paras get_population_size))
-	;;to selection count for parasites being chosen during evaluation
-	(paras_fitness_count (int-array paras_size))  
-	(paras_index 0))
-        
-    (declare (-int-) paras_size)
-    (declare (-idx1- (-int-)) paras_fitness_count)
-    (declare (-double-) res ret1 ret2)
+  (declare (-obj- (PopulationSP)) host paras)
 
-    (for* (i 0 (==> host get_population_size))
-      (setq res 0)
-      
-      (for* (j 0 FITNESSxSAMPLExSIZE)   ;; sample tests to assess fitness
-        ;(declare (-int-) j) 
-	(setq paras_index (to-int #{r0n($paras_size)#}))
-	(let ((ret (==> ob_problem fitness (==> host get_genome i) 
-		       (==> paras get_genome paras_index))))
-	      (setq res (+ res (nth 0 ret)));;keep track of host fitness
-	      ;;keep track of how many times each parasite was selected
-	      (paras_fitness_count paras_index 
-				   (+ (paras_fitness_count paras_index) 1))
-	      ;;keep track of parasite fitness
-	      (==> paras set_fitness paras_index
-		   (+ (==> paras get_fitness paras_index) (nth 1 ret))))
+  (let* ((res 0)
+	 (row (==> host get_population_row))
+	 (col (==> host get_population_col))
+	 (host_genome (ubyte-array (==> host get_genome_length)))
+	 (paras_genome (ubyte-array (==> paras get_genome_length)))
+	 (nei_pop_host (idx-shift* (idx-trim* (==> host get_population) 
+					      3 3) -1 -1)) ;3x3 genome neigh 
+	 (nei_pop_paras(idx-shift* (idx-trim* (==> paras get_population) 
+					      3 3) -1 -1)) ;3x3 genome neigh 
 	)
-      ;;assign host fitness
-      (==> host set_fitness i (/ res FITNESSxSAMPLExSIZE))     
-      )
-    ;;assign parasite fitness
-    (for* (i 0 paras_size) 
-      (==> paras set_fitness i (/ (==> paras get_fitness i) 
-				  (paras_fitness_count i))))
+    (declare (-int-) FITNESSxSAMPLExSIZE row col)
+    (declare (-double-) res)
+    (declare (-idx1- (-uchar-)) host_genome paras_genome)
+    (declare (-idx3- (-uchar-)) nei_pop_host nei_pop_paras)
+
+    (==> host update_borders_population)
+    (==> paras update_borders_population)
+
+    (unprotect      ;;disable bounds checking
+     (for* (i 0 row)
+       (for* (j 0 col)   ;; sample tests to assess fitness
+	 (declare (-int-) i j)
+	 (setq res 0)
+	 ;get host's genome
+	 (setq host_genome (==> host get_genome_global i j))
+	 ;test current host on all parasites in the neighborhood
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+			       (==> paras get_genome_nei 0 0 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 0 1 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 0 2 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 1 0 nei_pop_paras))))
+
+	 (let ((sel (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 1 1 nei_pop_paras))))
+	   (incr res (nth 0 sel))
+	   (==> paras set_fitness_global i j (+ (==> paras get_fitness_global i j)
+					     (nth 1 sel))))
+
+
+;	 (incr res (nth 0 (==> ob_problem fitness host_genome
+;	 		       (==> paras get_genome_nei 1 1 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 1 2 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 2 0 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 2 1 nei_pop_paras))))
+	 (incr res (nth 0 (==> ob_problem fitness host_genome
+	 		       (==> paras get_genome_nei 2 2 nei_pop_paras))))
+	 ;assign fitness to host
+	 (==> host set_fitness_global i j (/ res FITNESSxSAMPLExSIZE))
+
+	 (idx-shift! nei_pop_host 1 1)  ;shift neibhorhood R by one
+	 (idx-shift! nei_pop_paras 1 1)
+	 )
+       (idx-shift! nei_pop_host 1 (- col))  ;row-rewind
+       (idx-shift! nei_pop_paras 1 (- col))
+       (idx-shift! nei_pop_host 0 1)  ; move one row down 
+       (idx-shift! nei_pop_paras 0 1)
+       )
+     )
     ))
 
-;;rank selection from tournament group w/ rank bias
-;;always use tournament size of 9 to assign bias value as 0.5^rank
-;;???improvement: figure out bias for individuals if tournament group size <> 9 
-(defmethod EvolutionSP repro_rank_select ()
+;; (defmethod EvolutionSP evaluate_coevolution (host paras FITNESSxSAMPLExSIZE)
+;;   (declare (-obj- (Population)) host paras)
+;;   (declare (-int-) FITNESSxSAMPLExSIZE) 
+;;   (let* ((res 0) (ret1 0) (ret2 0)
+;; 	 ;(ret '())
+;; 	(paras_size (==> paras get_population_size))
+;; 	;;to selection count for parasites being chosen during evaluation
+;; 	(paras_fitness_count (int-array paras_size))  
+;; 	(paras_index 0))
+        
+;;     (declare (-int-) paras_size)
+;;     (declare (-idx1- (-int-)) paras_fitness_count)
+;;     (declare (-double-) res ret1 ret2)
+
+;;     (for* (i 0 (==> host get_population_size))
+;;       (setq res 0)
+      
+;;       (for* (j 0 FITNESSxSAMPLExSIZE)   ;; sample tests to assess fitness
+;;         ;(declare (-int-) j) 
+;; 	(setq paras_index (to-int #{r0n($paras_size)#}))
+;; 	(let ((ret (==> ob_problem fitness (==> host get_genome i) 
+;; 		       (==> paras get_genome paras_index))))
+;; 	      (setq res (+ res (nth 0 ret)));;keep track of host fitness
+;; 	      ;;keep track of how many times each parasite was selected
+;; 	      (paras_fitness_count paras_index 
+;; 				   (+ (paras_fitness_count paras_index) 1))
+;; 	      ;;keep track of parasite fitness
+;; 	      (==> paras set_fitness paras_index
+;; 		   (+ (==> paras get_fitness paras_index) (nth 1 ret))))
+;; 	)
+;;       ;;assign host fitness
+;;       (==> host set_fitness i (/ res FITNESSxSAMPLExSIZE))     
+;;       )
+;;     ;;assign parasite fitness
+;;     (for* (i 0 paras_size) 
+;;       (==> paras set_fitness i (/ (==> paras get_fitness i) 
+;; 				  (paras_fitness_count i))))
+;;     ))
+
+;;select indiv with bias value as 0.5^rank - return its index
+(defmethod EvolutionSP repro_rank_select()
    (let ((spin 0)
 	 (slot_down 0)
 	 (slot_up 0)
@@ -90,142 +202,178 @@
     (declare (-double-) spin slot_up slot_down)
     (declare (-int-) index )
     (setq spin (to-double #{uniform()#}))
-    (setq slot_up (** 0.5 1))
+    (setq slot_up (tmp_rank_sel 1))
     (for* (i 1 8)
-;(printf "spin: %f sd:%f su%f\n" spin slot_down slot_up)
       (if (and (> spin slot_down) (<= spin slot_up))
 	  (setq index (- i 1)))
       (setq slot_down slot_up)
-      (setq slot_up (+ slot_up (** 0.5 (+ i 1)))))
-    ;(if (> index 8) (print " EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEROR\n"))
-    ;(printf "in: %d " index)
+      (incr slot_up (tmp_rank_sel (+ i 1))))
     index
     ))
 
-;;tournament reproduction selection 
-;;always use tournament size of 9 to assign bias value as 0.5^rank
-;;???improvement: figure out bias for individuals if tournament group size <> 9 
-(defmethod EvolutionSP repro_tourn (host)
-  (declare (-obj- (Population)) host)
+;;tournament reproduction selection use local neighborhood for tournament
+;; and select indiv with bias value as 0.5^rank
+(defmethod EvolutionSP repro_tourn (nei)
+  (declare (-idx2- (-double-)) nei)
   (let* ((tourn_size 9)
-	 (group_fitness (double-array tourn_size))
-	 (group_index (int-array tourn_size))
-	 (swaps (clone-array group_index))
-	 (cl_group_index (clone-array group_index))
-	 (host_size (==> host get_population_size)))
-    (declare (-idx1- (-double-)) group_fitness)
-    (declare (-idx1- (-int-)) group_index swaps cl_group_index)
-    (declare (-int-) tourn_size host_size)
+	 (ret 0)
+	 (ret2 (to-int #{r0n(9)#}))     ;randomly select one from neigh
+	 (swaps (int-array tourn_size)));for recording sorting swaps 
 
-    (for* (i 0 tourn_size)       ;populate tournamen group at random from host pop
-       (group_index i (to-int #{r0n($host_size)#}))
-      (group_fitness i (==> host get_fitness (group_index i)))
-      (swaps i i)
-      )
+    (declare (-idx1- (-int-)) swaps)
+    (declare (-int-) tourn_size ret ret2)
+    ;;populate tournamen group with fitness vals from nei
+    (tmp_fit 0 (nei 0 0))
+    (tmp_fit 1 (nei 0 1))
+    (tmp_fit 2 (nei 0 2))
+    (tmp_fit 3 (nei 1 0))
+    (tmp_fit 4 (nei 1 1))
+    (tmp_fit 5 (nei 1 2))
+    (tmp_fit 6 (nei 2 0))
+    (tmp_fit 7 (nei 2 1))
+    (tmp_fit 8 (nei 2 2))
+    (array-copy (arange* 0 9) swaps)
+    (array-sortdown! tmp_fit swaps) ;sort decreasing
 
-    (array-sortdown! group_fitness swaps) ;sort increasing
-    (for* (i 0 tourn_size)
-      (cl_group_index i (group_index (swaps i))))
-      
-    (array-copy cl_group_index group_index)
-    ;;select P1 w/ rank bias from group and P2 w/o bias from group
-    (list (group_index (==> this repro_rank_select)) 
-	  (group_index (to-int #{r0n(9)#})))
+    (setq ret (==> this repro_rank_select))
 
+    (list (tmp_index (swaps ret) 0) (tmp_index (swaps ret) 1)
+	  (tmp_index ret2 0)        (tmp_index ret2 1))
     ))
 
 ;;biased roulette wheel selection
-(defmethod EvolutionSP repro_roulette (host)
-  (declare (-obj- (Population)) host)
+(defmethod EvolutionSP repro_roulette (nei)
+  (declare (-idx2- (-double-)) nei)
   (let* ((spin (to-double #{uniform()#}))
+	 (fit_sum ((idx-sum nei)))
 	 (slot_down 0) (slot_up 0) (index 0))
-    (declare (-double-) spin slot_down slot_up)
+    (declare (-double-) spin slot_down slot_up fit_sum)
     (declare (-int-) index)
-    (setq slot_up (==> host get_fitness 0))
-    (for* (i 0 (- (==> host get_population_size) 1))
+    ;;locally normalize fitness w/ respect to local nei
+    (tmp_fit 0 (/ (nei 0 0) fit_sum))
+    (tmp_fit 1 (/ (nei 0 1) fit_sum))
+    (tmp_fit 2 (/ (nei 0 2) fit_sum))
+    (tmp_fit 3 (/ (nei 1 0) fit_sum))
+    (tmp_fit 4 (/ (nei 1 1) fit_sum))
+    (tmp_fit 5 (/ (nei 1 2) fit_sum))
+    (tmp_fit 6 (/ (nei 2 0) fit_sum))
+    (tmp_fit 7 (/ (nei 2 1) fit_sum))
+    (tmp_fit 8 (/ (nei 2 2) fit_sum))
+
+    (setq slot_up (tmp_fit 0))
+    (for* (i 0 8)
       ;;check if spin value is in current slot
       (if (and (> spin slot_down) (<= spin slot_up))
-	  (setq index i))
+    	  (setq index i))
       ;;move to next wheel slot
       (setq slot_down slot_up)
-      (setq slot_up (+ slot_up (==> host get_fitness (+ i 1)))))
-    index
+      (incr slot_up (tmp_fit (+ i 1))))
+    (list (tmp_index index 0) (tmp_index index 1))
     ))
 
 ;;reproduction selection tournament
-;;if REPRO=0 choose 2 parents at random w/o fitness bias from entire pop
-;;if REPRO=1 choose 2 parents at random w fitness bias from entire pop
-;;if REPRO=2 choose parents from randomly selected tournament of 9 
+;;if REPRO=0 choose 2 parents at random w/o fitness bias from local neigh
+;;if REPRO=1 choose 2 parents at random w fitness bias from local neigh
+;;if REPRO=2 choose parents from local neigh tournament 
 ;;           select P1 w/ rank bias from group and P2 w/o bias from group
-(defmethod EvolutionSP repro_select(host REPRO)
-  (declare (-obj- (Population)) host)
+(defmethod EvolutionSP repro_select(nei_fit REPRO)
+  (declare (-idx2- (-double-)) nei_fit)
   (declare (-int-) REPRO)
   (cond 
-   ((= REPRO 0) (list (to-int #{r0n($(==> host get_population_size))#}) 
-		      (to-int #{r0n($(==> host get_population_size))#})))
-   ((= REPRO 1) (list (to-int (==> this repro_roulette host)) 
-		      (to-int (==> this repro_roulette host))))
-   ((= REPRO 2) (==> this repro_tourn host))
-   )
-  )
+   ((= REPRO 0) (list (to-int #{r0n(3)#})(to-int #{r0n(3)#})
+		      (to-int #{r0n(3)#})(to-int #{r0n(3)#})))
+   ((= REPRO 1) (append (==> this repro_roulette nei_fit)
+			(==> this repro_roulette nei_fit)))
+    
+   ((= REPRO 2) (==> this repro_tourn nei_fit))
+   ))
+  
 
-;(defmethod EvolutionSP reproduce()
+;(defmethod EvolutionSP reproduce(host HOSTxCR HOSTxMU REPRO)
 ;; bit string as genome based reproduction
-;; if prxcr=0:  use mutation only as a reproduction operator routine for each
-;;              individual in population mutation with bias <r>
-;; if prxcr=1: perform one point crossover of two parents folowed by 
-;;              a bitwise mutation with bias <r>
-(defmethod EvolutionSP reproduce(host HOSTxCR HOSTxMU ELITExSIZE REPRO)
-  (declare (-obj- (Population)) host)
-  (let ((ob_reproduce (new GeneticOperators))  ;;reproduction operator object
-	(pop_size (==> host get_population_size))
-	(host_offspring (clone-array (==> host get_population)))
-	(i_best 0))
+;; if HOSTxCR<=0:  use mutation only as a reproduction operator routine for each
+;;              individual in neigh with mutation with bias <r>
+;; if HOSTxCR>0: perform one point crossover of two parents w/ probab HOSTxCR 
+;;              folowed by a bitwise mutation with bias <r>
+;; if HOSTxCR=1: always reproduce by one-point crossover
+;;              folowed by a bitwise mutation with bias <r>
 
+(defmethod EvolutionSP reproduce(host HOSTxCR HOSTxMU REPRO)
+  (declare (-obj- (PopulationSP)) host)
+  (let ((ob_reproduce (new GeneticOperators))  ;;reproduction operator object
+	(row (==> host get_population_row))
+	(col (==> host get_population_col))
+	(nei_pop (idx-shift* (idx-trim* (==> host get_population) 
+					     3 3) -1 -1)) ;3x3 genome neigh 
+	(nei_fit (idx-shift* (idx-trim* (==> host get_population_fitness) 
+					     3 3) -1 -1)) ;3x3 fit neigh
+	(host_offspring (clone-array (==> host get_population))))
     (declare (-obj- (GeneticOperators)) ob_reproduce)
     (declare (-double-) HOSTxCR HOSTxMU)
-    (declare (-int-) ELITExSIZE REPRO pop_size i_best) 
-    (declare (-idx2- (-uchar-)) host_offspring)
+    (declare (-int-) REPRO row col) 
+    (declare (-idx3- (-uchar-)) host_offspring)
+    (declare (-idx2- (-double-)) nei_fit)
+    (declare (-idx3- (-uchar-)) nei_pop)
     
-    (assert (and (>= ELITExSIZE 0) (<= ELITExSIZE pop_size))
-	    "ELITExSIZE: Value must be >0 and < POPxSIZE")  
-
-    ;;copy elitest to offspring population
-    ;;although population is sorted accoring to fitness, select_best method
-    ;;will choose at random if there are many best inividuals with same fit
-    ;;one could just take ELITExSIZE number of indiv from the top of pop.
-    (for* (i 0 ELITExSIZE)
-      (setq i_best (==> host select_best))
-      (==> host set_fitness i_best (* -1 (==> host get_fitness i_best)))
-      (array-copy (==> host get_genome i_best)(idx-select host_offspring 0 i)))
-    (==> host set_population_fitness (idx-abs (==> host get_population_fitness)))
-	
+    (==> host update_borders_fitness)
+    (==> host update_borders_population)
     ;reproduce population
     ;;use binary crossover then mutation
-    (if (> HOSTxCR 0)       
-      (progn 
-	(for* (i ELITExSIZE pop_size)
-	  (let ((sel (==> this repro_select host REPRO)))
-	    (array-copy (==> ob_reproduce mu      ;;mutate offspring
-			     (==> ob_reproduce cr ;;select parent from neighborhood
-				  (==> host get_genome (to-int (nth 0 sel)))
-				  (==> host get_genome (to-int (nth 1 sel))) HOSTxCR)
+    (if (> HOSTxCR 0) 
+       (progn 
+	(unprotect      ;;disable bounds checking
+	 (for* (i 0 row)
+	   (for* (j 0 col)   ;; sample tests to assess fitness
+	     (declare (-int-) i j)
+
+	     (let ((sel (==> this repro_select nei_fit REPRO)))
+	       (array-copy (==> ob_reproduce mu   ;;mutate offspring
+			     (==> ob_reproduce cr ;;select parent from neigh
+				  (==> host get_genome_nei (to-int (nth 0 sel)) 
+				                           (to-int (nth 1 sel)) 
+							   nei_pop)
+				  (==> host get_genome_nei (to-int (nth 2 sel)) 
+				                           (to-int (nth 3 sel)) 
+							   nei_pop)
+				  HOSTxCR)
 			     HOSTxMU)             ;;mutation probab
-		 (idx-select host_offspring 0 i)
-		 ))))
+			   (idx-select* host_offspring i j)))
+		 
+  	 (idx-shift! nei_pop 1 1)  ;shift neibhorhood R by one
+  	 (idx-shift! nei_fit 1 1)
+  	 )
+       (idx-shift! nei_pop 1 (- col))  ;row-rewind
+       (idx-shift! nei_fit 1 (- col))
+       (idx-shift! nei_pop 0 1)  ; move one row down 
+       (idx-shift! nei_fit 0 1)
+       )))
       ;;use only mutation
-      (progn
-	(for* (i ELITExSIZE pop_size)
-	  (let ((sel (==> this repro_select host REPRO)))
-	    (array-copy (==> ob_reproduce mu   ;;mutate offspring
-			     (==> host get_genome (to-int (nth 0 sel)))
-			     HOSTxMU )
-		 (idx-select host_offspring 0 i)
-		 )))))
+      (progn 
+	(unprotect      ;;disable bounds checking
+	 (for* (i 0 row)
+	   (for* (j 0 col)   ;; sample tests to assess fitness
+	     (declare (-int-) i j)
+
+	     (let ((sel (==> this repro_select nei_fit REPRO)))
+	       (array-copy (==> ob_reproduce mu   ;;mutate offspring
+			       (==> host get_genome_nei (to-int (nth 0 sel)) 
+				                        (to-int (nth 1 sel)) 
+							nei_pop)
+			     HOSTxMU)             ;;mutation probab
+			   (idx-select* host_offspring i j)))
+		 
+  	 (idx-shift! nei_pop 1 1)  ;shift neibhorhood R by one
+  	 (idx-shift! nei_fit 1 1)
+  	 )
+       (idx-shift! nei_pop 1 (- col))  ;row-rewind
+       (idx-shift! nei_fit 1 (- col))
+       (idx-shift! nei_pop 0 1)  ; move one row down 
+       (idx-shift! nei_fit 0 1)
+       ))))
     (==> host set_population host_offspring)   ;;copy offspring to parents
     )
   ())
  
 
 (let ((dhc-make-lushflags (concat dhc-make-lushflags (sprintf " -I%s" PROJECTxDIR))))
-  (dhc-make-class () Evolution))
+  (dhc-make-class () EvolutionSP))

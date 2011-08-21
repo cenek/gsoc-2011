@@ -1,6 +1,6 @@
 (libload "libc/make")
 (libload "libc/stdio.lsh")
-(libload "libstd/kwdargs.lsh")
+;(libload "libstd/kwdargs.lsh")
 (libload "setup.lsh")
 (libload "random.lsh")
 (libload "population.lsh")
@@ -46,7 +46,7 @@
       (setq FN (fopen _FN "wb"))
     (setq FN NULL))
   (setq FITNESSxSAMPLExSIZE 9)
-  (setq REPRODUCTIONxSELECTION 1)
+  (setq REPRODUCTIONxSELECTION 2)
   (setq HOSTxCR 1)
   (setq PARASxCR 1)
   (setq HOSTxMU (/ 1 HOSTxGENOME))
@@ -126,7 +126,7 @@
   (setq REPRODUCTIONxSELECTION _REPRODUCTIONxSELECTION)
 )
 
-;;(==> GeneticAlgorithm set_population <HOSTxPOPxINIT> <PARASxPOPxINIT>
+;;(==> GeneticAlgorithm set_populations <HOSTxPOPxINIT> <PARASxPOPxINIT>
 ;;initializes populations of hosts and parasites to predefined arrays rather than random
 ;;Arrays must have size HOSTxPOPxSIZE by HOSTxGENOME and PARASxPOPxSIZE by PARASxGENOME respectively.)
 (defmethod GeneticAlgorithm set_populations (_HOSTxPOPxINIT _PARASxPOPxINIT)
@@ -137,10 +137,10 @@
   (array-copy _HOSTxPOPxINIT HOSTxPOPxINIT)
   (array-copy _PARASxPOPxINIT PARASxPOPxINIT))
 
-;;(==> GeneticAlgorithm set_population_spatial <HOSTxSPxPOPxINIT> <PARASxSPxPOPxINIT>
+;;(==> GeneticAlgorithm set_populations_spatial <HOSTxSPxPOPxINIT> <PARASxSPxPOPxINIT>
 ;;initializes populations of hosts and parasites to predefined arrays rather than random
 ;;Arrays must have size HOSTxPOPxROW HOSTxPOPxCOL by HOSTxGENOME and PARASxPOPxROW by PARASxPOPxCOL by PARASxGENOME respectively.)
-(defmethod GeneticAlgorithm set_populations (_HOSTxSPxPOPxINIT _PARASxSPxPOPxINIT)
+(defmethod GeneticAlgorithm set_populations_spatial (_HOSTxSPxPOPxINIT _PARASxSPxPOPxINIT)
   (declare (-idx3- (-uchar-)) _HOSTxSPxPOPxINIT _PARASxSPxPOPxINIT)
   (assert (and (same-shape-p _HOSTxSPxPOPxINIT HOSTxSPxPOPxINIT)
 	       (same-shape-p _PARASxSPxPOPxINIT PARASxSPxPOPxINIT))
@@ -177,7 +177,7 @@
     
     ;;run evolution loop
     (for* (i 0 GENERATIONS)
-      ;(declare (-int-) i)
+      (declare (-int-) i)
       ;assign host fitness 
       (==> evo evaluate_evolution host paras FITNESSxSAMPLExSIZE)
       ;normalize host fitness to <0,1)
@@ -267,45 +267,97 @@
     (assert (and (> _HOSTxINIT -1) (<= _HOSTxINIT 1)
 		 (> _PARASxINIT -1) (<= _PARASxINIT 1))
 	    "HOSTxINIT or PARASxINIT: Values out of bounds <-1, 1>")
+    (assert (and (= HOSTxPOPxROW PARASxPOPxROW) (= HOSTxPOPxCOL PARASxPOPxCOL))
+	    "HOST and PARAS: Populations have different sizes")
+
     ;initialize hosts
     (==> host init _HOSTxINIT)
     (if (< _HOSTxINIT 0)
 	(==> host set_population HOSTxSPxPOPxINIT)
       (array-copy (==> host get_population) HOSTxSPxPOPxINIT))
+    (==> host update_borders_population)
 
     ;initialize parasites
     (==> paras init _PARASxINIT)
     (if (< _PARASxINIT 0)
 	(==> paras set_population PARASxSPxPOPxINIT)
       (array-copy (==> paras get_population) PARASxSPxPOPxINIT))
+    (==> paras update_borders_population)
     ;;re-set number of tests used to assess solution's fitness
     (setq FITNESSxSAMPLExSIZE 9)
-    ;;run evolution loop
+
+    ;;run spatial evolution loop
     (for* (i 0 GENERATIONS)
-      ;(declare (-int-) i)
+      (declare (-int-) i)
       ;assign host fitness 
       (==> evo evaluate_evolution host paras FITNESSxSAMPLExSIZE)
-      ;normalize host fitness to <0,1)
-;      (==> host normalize_fitness)
-      ;reproduce hosts
-;      (==> this log (sprintf "G: %d\n hosts: \n" i ))
       ;print host population
-;      (==> host print_population FN)
-;      (==> this log (sprintf "paras: \n"))
+      (==> this log (sprintf "G: %d\n hosts: \n" i ))
+      (==> host print_population FN)
+      (==> this log (sprintf "paras: \n"))
       ;print paras population
-;      (==> paras print_population FN)
-;      (==> evo reproduce host HOSTxCR HOSTxMU REPRODUCTIONxSELECTION)
+      (==> paras print_population FN)
+      ;reproduce hosts
+      (==> evo reproduce host HOSTxCR HOSTxMU REPRODUCTIONxSELECTION)
       ;reinitialize parasites
-;      (if (< _PARASxINIT 0)
-;	  (==> ob_problem paras_init (==> paras get_population))
-;	(==> paras init _PARASxINIT))
+      (if (< _PARASxINIT 0)
+	  (==> ob_problem paras_init_spatial (==> paras get_population))
+	(==> paras init _PARASxINIT))
       )
   ))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;SPATIAL COEVOLUTION
+(defmethod GeneticAlgorithm coevolution_spatial (_HOSTxINIT _PARASxINIT)
+  (declare (-double-) _HOSTxINIT _PARASxINIT)
+  (let* ((host (new PopulationSP HOSTxPOPxSIZE HOSTxGENOME))
+	 (paras (new PopulationSP PARASxPOPxSIZE PARASxGENOME))
+	 (evo (new EvolutionSP ob_problem))
+	 )
+    (declare (-obj- (PopulationSP)) host paras)
+    (declare (-obj- (EvolutionSP)) evo)
+    
+    (assert (and (> _HOSTxINIT -1) (<= _HOSTxINIT 1)
+		 (> _PARASxINIT -1) (<= _PARASxINIT 1))
+	    "HOSTxINIT or PARASxINIT: Values out of bounds <-1, 1>")
+    (assert (and (= HOSTxPOPxROW PARASxPOPxROW) (= HOSTxPOPxCOL PARASxPOPxCOL))
+	    "HOST and PARAS: Populations have different sizes")
 
-(defmethod GeneticAlgorithm coevolution_spatial ()
-()
-)
+    ;initialize hosts
+    (==> host init _HOSTxINIT)
+    (if (< _HOSTxINIT 0)
+	(==> host set_population HOSTxSPxPOPxINIT)
+      (array-copy (==> host get_population) HOSTxSPxPOPxINIT))
+    (==> host update_borders_population)
+
+    ;initialize parasites
+    (==> paras init _PARASxINIT)
+    (if (< _PARASxINIT 0)
+	(==> paras set_population PARASxSPxPOPxINIT)
+      (array-copy (==> paras get_population) PARASxSPxPOPxINIT))
+    (==> paras update_borders_population)
+    ;;re-set number of tests used to assess solution's fitness
+    (setq FITNESSxSAMPLExSIZE 9)
+
+    ;;run spatial evolution loop
+    (for* (i 0 GENERATIONS)
+      (declare (-int-) i)
+      ;assign host fitness 
+      (==> evo evaluate_coevolution host paras FITNESSxSAMPLExSIZE)
+      ;print host population
+      (==> this log (sprintf "G: %d\n hosts: \n" i ))
+      (==> host print_population FN)
+      (==> this log (sprintf "paras: \n"))
+      ;print paras population
+      (==> paras print_population FN)
+      ;reproduce hosts
+      (==> evo reproduce host HOSTxCR HOSTxMU REPRODUCTIONxSELECTION)
+      ;reproduce paras
+      (==> evo reproduce paras PARASxCR PARASxMU REPRODUCTIONxSELECTION)
+      )
+  ))
+
 
 (let ((dhc-make-lushflags (concat dhc-make-lushflags (sprintf " -I%s"
 PROJECTxDIR))))

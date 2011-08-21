@@ -6,7 +6,7 @@
 (defun test ()
   (help)
   (let* ((pr (new Problem))
-	 (ga (new GeneticAlgorithm pr 20 10 10 75 50 "" )))
+	 (ga (new GeneticAlgorithm pr 200 100 100 75 50 "output.txt" )))
 
     ;;Run non-spatial evolution (standard evolution)
     ;(==> ga evolution 0.5 0.0 3)
@@ -14,7 +14,7 @@
     ;(==> ga set_host_mutation 0.2)
     ;(==> ga set_paras_mutation 0.2)
     ;(==> ga coevolution 0.5 0.0 3)
-    (==> ga evolution_spatial 0.5 0.0)
+    (==> ga coevolution_spatial 0.5 0.0)
     ))
 
 (defun help()
@@ -45,5 +45,8 @@
   (printf"                    by (==> GeneticAlgorithm set_populations <HOSTxPOPxINIT> <PARASxPOPxINIT> before call to \"evolution\" method.\n")
   (printf"                    Arrays must have size  (HOSTxPOPxSIZE by HOSTxGENOME and PARASxPOPxSIZE by PARASxGENOME respectively.)\n")
   (printf"                    Parasite population will be reinitialized at each evolutionary step by calling (==> Problem paras_init<pop>)\n")
+  (printf"                    by (==> GeneticAlgorithm set_populations_spatial <HOSTxPOPxINIT> <PARASxPOPxINIT> before call to \"evolution\" method.\n")
+  (printf"                    Same as above, but the arrays must have size  (HOSTxPOPxROW by HOSTxPOPxCOL by HOSTxGENOME and PARASxPOPxROW by PARASxPOPxCOL by PARASxGENOME respectively.)\n")
+  (printf"                    Parasite population will be reinitialized at each evolutionary step by calling (==> Problem paras_init_spatial<pop>)\n")
 
 )

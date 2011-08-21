@@ -15,7 +15,6 @@
 #? (new GeneticOperators )
 (defmethod GeneticOperators GeneticOperators ()
     (cpheader "#include \"random.h\"")
-    ;;#{seed_random(-1) #}
     1)
 
 ;; one point crossover reproduction operator
