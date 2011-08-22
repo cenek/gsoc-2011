@@ -1,5 +1,11 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Copyright Martin Cenek <drcenek@gmail.com> 2011
+;; All source code is released under the terms of the MIT License.
+;; See LICENSE for more information.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (libload "libc/make")
 (libload "genetic_operators.lsh")
+
 ;; Object CoEvolution gets passed in object representing problem
 ;; to be solved (object must contain get_fitness funtion 
 ;; Performs spatial coEvolution on populations of 

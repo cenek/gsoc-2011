@@ -1,9 +1,13 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Copyright Martin Cenek <drcenek@gmail.com> 2011
+;; All source code is released under the terms of the MIT License.
+;; See LICENSE for more information.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (libload "libc/make")
 (libload "libidx/idx-sort.lsh")
 
 ;; Object defines basic population construct and performs
-;; basic popualation operations: <initialize> <sort> <off2par>
-;; <print_population> <print_fit>
+;; basic popualation operations - evolving spatial populations
 (defclass PopulationSP object 
   ;index w/o borders
   ((-idx3- (-uchar-)) pop pop* pop_nei) ;;population of binary parents and offspring

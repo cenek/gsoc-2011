@@ -1,15 +1,8 @@
-;;setup file contains parameters for experiments 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Copyright Martin Cenek <drcenek@gmail.com> 2011
+;; All source code is released under the terms of the MIT License.
+;; See LICENSE for more information.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;setup file 
 (defparameter PROJECTxDIR (pwd)) ;;project directory used for relative file names
-
-(defconstant RUNxCOEVOLUTION 0);1   ;;1:run coevolution; 0:run evolution
-(defconstant DBLxCOEVOLUTION 0)   ;;0:run normal coevol (must be spatial=1 coev=1 dblCoev=1)
-                             ;;1:paras defined as density val. Dens evolved +/- <0,prxpmu> 
-
-(defconstant NEIGHBORHOODxTYPE 0) ;;type of neighborhood 1: VonNeuman (N,S,W,E,C)
-                             ;;                     0: Moore     (3x3 neighborhood)
-;; Evolutionary setup
-(defconstant POPxHOSTxROWS     20) ;;number of rows for evolution grid
-(defconstant POPxHOSTxCOLUMNS  20) ;;number of columns for ecolution grid
-(defconstant POPxPARASxROWS    20) ;;number of rows for evolution grid - used for evolution
-(defconstant POPxPARASxCOLUMNS 20) ;;number of columns for ecolution grid - used for evolution
 

@@ -1,9 +1,14 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Copyright Martin Cenek <drcenek@gmail.com> 2011
+;; All source code is released under the terms of the MIT License.
+;; See LICENSE for more information.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Simple example defining a problem object with a fitness funtion.
 
-;;a dummy class defining problem
-;;method fitness encodes the problem and 
-;;returns a fitness value of how well a 
-;;binary genome performed on given problem
+;;a dummy base object class defining problemmethod fitness has to be
+;;overwriten by user to encode the problem and returns a fitness value
+;;of how well a binary genome performed on given test (or an objective
+;;function
 
 (defclass Problem object
 )
@@ -12,12 +17,9 @@
 ()
 )
 
-;;problem is defined as looking for a genome
-;;with the largest number of 1s (perect solution
-;;is genome with all 1s
 (defmethod Problem fitness (genome test)
   (declare (-idx1- (-uchar-)) genome test)
-  (list ((idx-sum genome)) ((idx-sum test)))
+  (list 0.0 0.0)
 )
 
 ;;reinitialize parasite population (non-spatial ev, and coev)

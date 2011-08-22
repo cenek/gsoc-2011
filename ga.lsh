@@ -1,21 +1,29 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Copyright Martin Cenek <drcenek@gmail.com> 2011
+;; All source code is released under the terms of the MIT License.
+;; See LICENSE for more information.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (libload "libc/make")
 (libload "libc/stdio.lsh")
-;(libload "libstd/kwdargs.lsh")
+(libload "problem.lsh")
 (libload "setup.lsh")
 (libload "random.lsh")
 (libload "population.lsh")
 (libload "population_spatial.lsh")
 (libload "evolution.lsh")
 (libload "evolution_spatial.lsh")
-;(libload "problem.lsh")
 
+;;sets up all parameters, executes evolution, co-evolution, spatial
+;;evoltuion and spatial coevolution algorithms. Provides methods to
+;;setup algorithm parameters, as well as records and plots results.
 (defclass GeneticAlgorithm object
   ((-obj- (Problem)) ob_problem)
-  ((-double-) seed HOSTxCR PARASxCR HOSTxMU PARASxMU)
+  ((-double-) SEED HOSTxCR PARASxCR HOSTxMU PARASxMU)
   ((-int-) GENERATIONS HOSTxPOPxSIZE HOSTxPOPxROW HOSTxPOPxCOL
            PARASxPOPxSIZE PARASxPOPxROW PARASxPOPxCOL HOSTxGENOME
-           PARASxGENOME FITNESSxSAMPLExSIZE REPRODUCTIONxSELECTION)
+           PARASxGENOME FITNESSxSAMPLExSIZE REPRODUCTIONxSELECTION ALGOL)
   ((-gptr-) FN)
+  ((-idx2- (-double-)) BEST)
   ((-idx2- (-uchar-)) HOSTxPOPxINIT PARASxPOPxINIT)
   ((-idx3- (-uchar-)) HOSTxSPxPOPxINIT PARASxSPxPOPxINIT)
 )
@@ -55,10 +63,34 @@
   (setq PARASxSPxPOPxINIT (uchar-array PARASxPOPxROW PARASxPOPxCOL PARASxGENOME))
   (setq HOSTxPOPxINIT (uchar-array HOSTxPOPxSIZE HOSTxGENOME))
   (setq PARASxPOPxINIT (uchar-array PARASxPOPxSIZE PARASxGENOME))
-  (setq seed (to-double #{seed_random(-1) #}))
-  (==> this log (sprintf "To re-seed experiment, use absolute value of: %f to replicate this experiment\n" seed))
+  (setq BEST (double-array GENERATIONS 7))
+  (setq SEED (to-double #{seed_random(-1) #}))
+  (setq ALGOL -1)
+  (==> this log (sprintf "To re-seed experiment, use absolute value of: %f to replicate this experiment\n" SEED))
 ()
 )
+
+;;(==> GeneticAlgorithm log_best (HOST PARAS)
+;;seeds random number generator to predefined value
+(defmethod GeneticAlgorithm log_best (gen fit_h fit_p x_h y_h x_p y_p)
+  (declare (-double-) gen fit_h fit_p x_h y_h x_p y_p)
+  (BEST gen 0 gen)
+  (BEST gen 1 fit_h)
+  (BEST gen 2 fit_p)
+  (BEST gen 3 x_h)
+  (BEST gen 4 y_h)
+  (BEST gen 5 x_p)
+  (BEST gen 6 y_p)
+  )
+
+
+;;(==> GeneticAlgorithm set_seed <_SEED>
+;;seeds random number generator to predefined value
+(defmethod GeneticAlgorithm set_seed (_SEED)
+  (declare (-double-) _SEED)
+  (setq SEED (abs _SEED))
+  (to-double #{set_seed($SEED)#})
+  SEED) 
 
 ;;(==> GeneticAlgorithm set_host_mutation <HOSTxMU>) 
 ;;bitwise mutation probability for solution/host genome. 
@@ -152,27 +184,30 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;NON-SPATIAL EVOLUTION (STANDARD EVOLUTION)
 (defmethod GeneticAlgorithm evolution (_HOSTxINIT _PARASxINIT _ELITExSIZE)
+  (setq ALGOL 0)
   (declare (-double-) _HOSTxINIT _PARASxINIT)
   (declare (-int-) _ELITExSIZE)
   (let* ((host (new Population HOSTxPOPxSIZE HOSTxGENOME))
 	 (paras (new Population PARASxPOPxSIZE PARASxGENOME))
-	 (evo (new Evolution ob_problem)))
+	 (evo (new Evolution ob_problem))
+	 (best_h 0))
     (declare (-obj- (Population)) host paras)
     (declare (-obj- (Evolution)) evo)
-    
+    (declare (-int-) best_h)
+
     (assert (and (> _HOSTxINIT -1) (<= _HOSTxINIT 1)
-		 (> _PARASxINIT -1) (<= _PARASxINIT 1))
-	    "HOSTxINIT or PARASxINIT: Values out of bounds <-1, 1>")
+    		 (> _PARASxINIT -1) (<= _PARASxINIT 1))
+    	    "HOSTxINIT or PARASxINIT: Values out of bounds <-1, 1>")
     ;initialize hosts
     (==> host init _HOSTxINIT)
     (if (< _HOSTxINIT 0)
-	(==> host set_population HOSTxPOPxINIT)
+    	(==> host set_population HOSTxPOPxINIT)
       (array-copy (==> host get_population) HOSTxPOPxINIT))
 
     ;initialize parasites
     (==> paras init _PARASxINIT)
     (if (< _PARASxINIT 0)
-	(==> paras set_population PARASxPOPxINIT)
+    	(==> paras set_population PARASxPOPxINIT)
       (array-copy (==> paras get_population) PARASxPOPxINIT))
     
     ;;run evolution loop
@@ -181,7 +216,7 @@
       ;assign host fitness 
       (==> evo evaluate_evolution host paras FITNESSxSAMPLExSIZE)
       ;normalize host fitness to <0,1)
-      (==> host normalize_fitness)
+      ;(==> host normalize_fitness)
       ;sort host population 
       (==> host sort_population 0) ;descending
       ;reproduce hosts
@@ -191,12 +226,15 @@
       (==> this log (sprintf "paras: \n"))
       ;print paras population
       (==> paras print_population FN)
+      (setq best_h (==> host select_best))
+      (==> this log_best (to-double i) (==> host get_fitness (to-int best_h)) -1.0 (to-double best_h) -1.0 -1.0 -1.0)
       (==> evo reproduce host HOSTxCR HOSTxMU _ELITExSIZE REPRODUCTIONxSELECTION)
       ;reinitialize parasites
       (if (< _PARASxINIT 0)
-	  (==> ob_problem paras_init (==> paras get_population))
-	(==> paras init _PARASxINIT))
-      )
+      	  (==> ob_problem paras_init (==> paras get_population))
+      	(==> paras init _PARASxINIT))
+       )
+    ()
     ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -204,13 +242,16 @@
 ;;NON-SPATIAL COEVOLUTION - same as above, but rather than renintializing 
 ;;parasite population, it is evolved at the same time.
 (defmethod GeneticAlgorithm coevolution (_HOSTxINIT _PARASxINIT _ELITExSIZE)
+  (setq ALGOL 1)
   (declare (-double-) _HOSTxINIT _PARASxINIT)
   (declare (-int-) _ELITExSIZE)
   (let* ((host (new Population HOSTxPOPxSIZE HOSTxGENOME))
 	 (paras (new Population PARASxPOPxSIZE PARASxGENOME))
-	 (evo (new Evolution ob_problem)))
+	 (evo (new Evolution ob_problem))
+	 (best_h 0) (best_p 0))
     (declare (-obj- (Population)) host paras)
     (declare (-obj- (Evolution)) evo)
+    (declare (-int-) best_h best_p)
     
     (assert (and (> _HOSTxINIT -1) (<= _HOSTxINIT 1)
 		 (> _PARASxINIT -1) (<= _PARASxINIT 1))
@@ -233,7 +274,7 @@
       ;assign host fitness 
       (==> evo evaluate_coevolution host paras FITNESSxSAMPLExSIZE)
       ;normalize host fitness to <0,1)
-      (==> host normalize_fitness)
+      ;(==> host normalize_fitness)
       ;sort host population 
       (==> host sort_population 0) ;descending
       ;reproduce hosts
@@ -241,12 +282,17 @@
       ;print host population
       (==> host print_population FN)
       ;normalize paras fitness to <0,1)
-      (==> paras normalize_fitness)
+      ;(==> paras normalize_fitness)
       ;sort paras population 
       (==> paras sort_population 0) ;descending
       (==> this log (sprintf "paras: \n"))
       ;print paras population
       (==> paras print_population FN)
+      (setq best_h (==> host select_best))
+      (setq best_p (==> paras select_best))
+      (==> this log_best (to-double i) (==> host get_fitness (to-int best_h)) 
+	                               (==> paras get_fitness (to-int best_p)) 
+				       (to-double best_h) -1.0 (to-double best_h) -1.0)
       (==> evo reproduce host HOSTxCR HOSTxMU _ELITExSIZE REPRODUCTIONxSELECTION)
       (==> evo reproduce paras PARASxCR PARASxMU _ELITExSIZE REPRODUCTIONxSELECTION)
       )
@@ -256,6 +302,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;SPATIAL EVOLUTION
 (defmethod GeneticAlgorithm evolution_spatial (_HOSTxINIT _PARASxINIT)
+  (setq ALGOL 2)
   (declare (-double-) _HOSTxINIT _PARASxINIT)
   (let* ((host (new PopulationSP HOSTxPOPxSIZE HOSTxGENOME))
 	 (paras (new PopulationSP PARASxPOPxSIZE PARASxGENOME))
@@ -297,6 +344,10 @@
       (==> this log (sprintf "paras: \n"))
       ;print paras population
       (==> paras print_population FN)
+      (==> host select_best)
+      (==> this log_best (to-double i) 
+	   (==> host get_fitness_global :host:x :host:y) -1
+	   (to-double :host:x) (to-double :host:y) -1 -1)
       ;reproduce hosts
       (==> evo reproduce host HOSTxCR HOSTxMU REPRODUCTIONxSELECTION)
       ;reinitialize parasites
@@ -310,6 +361,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;SPATIAL COEVOLUTION
 (defmethod GeneticAlgorithm coevolution_spatial (_HOSTxINIT _PARASxINIT)
+  (setq ALGOL 3)
   (declare (-double-) _HOSTxINIT _PARASxINIT)
   (let* ((host (new PopulationSP HOSTxPOPxSIZE HOSTxGENOME))
 	 (paras (new PopulationSP PARASxPOPxSIZE PARASxGENOME))
@@ -351,6 +403,13 @@
       (==> this log (sprintf "paras: \n"))
       ;print paras population
       (==> paras print_population FN)
+      (==> host select_best)
+      (==> paras select_best)
+      (==> this log_best (to-double i) 
+	   (==> host get_fitness_global :host:x :host:y) 
+	   (==> paras get_fitness_global :paras:x :paras:y) 
+	   (to-double :host:x) (to-double :host:y) 
+	   (to-double :paras:x) (to-double :paras:y))
       ;reproduce hosts
       (==> evo reproduce host HOSTxCR HOSTxMU REPRODUCTIONxSELECTION)
       ;reproduce paras
@@ -362,3 +421,39 @@
 (let ((dhc-make-lushflags (concat dhc-make-lushflags (sprintf " -I%s"
 PROJECTxDIR))))
   (dhc-make-class () GeneticAlgorithm))
+
+(defmethod GeneticAlgorithm plot ()
+  (libload "gnuplot/plot")
+  (let* ((data (double-array GENERATIONS 2))
+	 (data2 (double-array GENERATIONS 2))
+	 (max_y 0)
+	 (gp (new Gnuplot 'interactive ()))
+         (g ()) )
+
+    (array-copy (idx-select BEST 1 0) (idx-select data 1 0))
+    (array-copy (idx-select BEST 1 0) (idx-select data2 1 0))
+    (array-copy (idx-select BEST 1 1) (idx-select data 1 1))
+    (array-copy (idx-select BEST 1 2) (idx-select data2 1 1))
+    (setq max_y (max ((idx-sup (idx-select data 1 1))) 
+		     ((idx-sup (idx-select data2 1 1)))))
+    (if (or (= ALGOL 0) (= ALGOL 2))
+	(setq g (plot* (title "Host Fitness")
+		       "set xlabel \"generations\""
+		       "set ylabel \"fitness\""
+		       (xrange 0 GENERATIONS)
+		       (yrange 0 max_y)
+		       (ytics (arange 0 max_y (/ max_y 10)))
+		       (margin 'left 0.15  'right 0.95)
+		       (lines data)))
+      (setq g (plot* (title "Host(red) and Parasite(blue) Fitness")
+		       "set xlabel \"generations\""
+		       "set ylabel \"fitness\""
+		       (xrange 0 GENERATIONS)
+		       (yrange 0 max_y)
+		       (ytics (arange 0 max_y (/ max_y 10)))
+		       (margin 'left 0.15  'right 0.95)
+		       (lines data (lc "red"))
+		       (lines data2 (lc "blue"))))   )
+    (==> gp do-graph g)
+    (pause)
+    ))

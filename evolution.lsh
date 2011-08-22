@@ -1,8 +1,13 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Copyright Martin Cenek <drcenek@gmail.com> 2011
+;; All source code is released under the terms of the MIT License.
+;; See LICENSE for more information.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (libload "libc/make")
 (libload "genetic_operators.lsh")
-;; Object CoEvolution gets passed in object representing problem
+;; Object gets passed in object representing problem
 ;; to be solved (object must contain get_fitness funtion 
-;; Performs spatial coEvolution on populations of 
+;; Performs evolution and coEvolution on populations of 
 ;; hosts and parasites (type of Population object)
 (defclass Evolution object
   ((-obj- (Problem)) ob_problem)
@@ -15,7 +20,10 @@
   (declare (-obj- (Problem)) ob) 
   (cpheader "#include \"random.h\"")
   (setq ob_problem ob)
-  (array-copy (vector 0 (** 0.5 1)(** 0.5 2)(** 0.5 3)(** 0.5 4)(** 0.5 5)(** 0.5 6)(** 0.5 7)(** 0.5 7)) tmp_rank_sel)
+  (setq tmp_rank_sel (double-array 9))
+  (array-copy (vector 0 (** 0.5 1)(** 0.5 2)(** 0.5 3)(** 0.5 4)
+		      (** 0.5 5)(** 0.5 6)(** 0.5 7)(** 0.5 7)) 
+	      tmp_rank_sel)
   )
 
 
@@ -52,7 +60,7 @@
 		   (+ (==> paras get_fitness paras_index) (nth 1 ret))))
 	)
       ;;assign host fitness
-      (==> host set_fitness i (/ res FITNESSxSAMPLExSIZE))     
+      (==> host set_fitness i (/ res FITNESSxSAMPLExSIZE))    
       )
     ;;assign parasite fitness
     (for* (i 0 paras_size) 

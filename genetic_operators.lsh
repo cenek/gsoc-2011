@@ -1,12 +1,11 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Copyright Martin Cenek <drcenek@gmail.com> 2011
+;; All source code is released under the terms of the MIT License.
+;; See LICENSE for more information.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (libload "libc/make")
-;;(libload (concat lushdir "/lsh/libc/constants.lsh"))
-;(libload (concat lushdir "/lsh/libc/shell.lsh"))
-;;(libload "population.lsh")
-;;(libload "population_rb.lsh")
-;(libload "../setup.lsh")
 
-
-;; object performs basic genetic algorithm operations:
+;; object performs basic genetic reproduction operations:
 ;; reproduction operators mutation
 ;; reproduction operators one point crossover
 (defclass GeneticOperators object

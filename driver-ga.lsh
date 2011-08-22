@@ -1,52 +1,49 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Copyright Martin Cenek <drcenek@gmail.com> 2011
+;; All source code is released under the terms of the MIT License.
+;; See LICENSE for more information.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (libload "libc/make")
 (libload "setup.lsh")
-(libload "problem1.lsh")
 (libload "ga.lsh")
 
-(defun test ()
-  (help)
-  (let* ((pr (new Problem))
-	 (ga (new GeneticAlgorithm pr 200 100 100 75 50 "output.txt" )))
-
-    ;;Run non-spatial evolution (standard evolution)
-    ;(==> ga evolution 0.5 0.0 3)
-    ;;Run non-spatial evolution (standard evolution)
-    ;(==> ga set_host_mutation 0.2)
-    ;(==> ga set_paras_mutation 0.2)
-    ;(==> ga coevolution 0.5 0.0 3)
-    (==> ga coevolution_spatial 0.5 0.0)
-    ))
-
-(defun help()
-  (printf "Use of GeneticAlgorithm object: \n")
-  (printf "pr (new Problem) defines an instance of a user defined <Problem> object\n")
-  (printf "(new GeneticAlgorithm <problem> <GENERATIONS> <HOSTxPOPxSIZE> <PARASxPOPxSIZE> <HOSTxGENOME> <PARASxGENOME> <FN>) defines an instance of a <GeneticAlgorithm> object with <Problem> object instance passed in. GA algorithm is solving the \"fitness\" function in the instance of <Problem> object\n")
-  (printf "Following are parameters passed into <GeneticAlgorithm>\n")
-  (printf "<GENERATIONS> -number of generations for GA to run for\n")
-  (printf "<HOSTxPOPxSIZE> - size of candidate solution population\n")
-  (printf "<PARASxPOPxSIZE> - size of test cases population\n")
-  (printf "<HOSTxGENOME> - length of candidate solution binary string\n")
-  (printf "<PARASxGENOME> - length of test case binary string\n")
-  (printf "<FN> - output file name - if set to NULL output is to stdio\n")
-  (printf "note: offspring population size is the same as <HOSTxPOPxSIZE> and <PARASxPOPxSIZE> respectively\n")
-  (printf "\n")
-  (printf "In addition to parameters passed into object methods, internal parameters are calculated and reset as following:\n")
-  (printf "(==> GeneticAlgorithm set_host_mutation <HOSTxMU>) bitwise mutation probability for solution/host genome. If unset it is 1/HOSTxGENOME\n")
-  (printf "(==> GeneticAlgorithm set_paras_mutation <PARASxMU>) bitwise mutation probability for test/parasite genome. If unset it is 1/PARASxGENOME\n")
-  (printf "(==> GeneticAlgorithm set_host_crossover <HOSTxCR>) probability of using one point crossover as reproduction operator for solution/host population.  If unset it is 1 (always reproduce by 1pt crossover followed by a bitwise mutation) set to 0 for mutation reproduction only\n")
-  (printf "(==> GeneticAlgorithm set_paras_crossover <PARASxCR>) same as set_host_crossover but for test/parasite population.\n")
-  (printf "---------------------------------------------------------------\n")
-  (printf "To run non-spatial evolution - a standard evolution\n")
-  (printf "(==> GeneticAlgorithm evolution <HOSTSxINIT> <PARASxINIT>) \n")
-  (printf "<HOSTSxINIT> - initialization of host at random \n")
-  (printf "      if value (0,1) each genome will be randomly initialized with a binomial density equal to value passed in. \n")
-  (printf "      if value 0, each genome will be randomly initialized and the entire population have uniformally distributed density (each genome with different density\n")
-  (printf "      if value -1, initialized populations from predefined arrays. Array must be initialized\n")
-  (printf"                    by (==> GeneticAlgorithm set_populations <HOSTxPOPxINIT> <PARASxPOPxINIT> before call to \"evolution\" method.\n")
-  (printf"                    Arrays must have size  (HOSTxPOPxSIZE by HOSTxGENOME and PARASxPOPxSIZE by PARASxGENOME respectively.)\n")
-  (printf"                    Parasite population will be reinitialized at each evolutionary step by calling (==> Problem paras_init<pop>)\n")
-  (printf"                    by (==> GeneticAlgorithm set_populations_spatial <HOSTxPOPxINIT> <PARASxPOPxINIT> before call to \"evolution\" method.\n")
-  (printf"                    Same as above, but the arrays must have size  (HOSTxPOPxROW by HOSTxPOPxCOL by HOSTxGENOME and PARASxPOPxROW by PARASxPOPxCOL by PARASxGENOME respectively.)\n")
-  (printf"                    Parasite population will be reinitialized at each evolutionary step by calling (==> Problem paras_init_spatial<pop>)\n")
-
+;;user defined problem as an instance of Problem base
+;;object
+(defclass myProblem Problem
 )
+
+(defmethod myProblem myProblem()
+())
+
+
+;;problem is defined as looking for a genome with the largest number
+;;of 1s (perfect solution is genome with all 1s - the same if
+;;population of tests is evolved
+(defmethod myProblem fitness (genome test)
+  (declare (-idx1- (-uchar-)) genome test)
+  (list (to-double ((idx-sum genome))) (to-double ((idx-sum test))))
+)
+
+(dhc-make-class () myProblem)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;test the GA object
+(defun test ()
+  (let* ((pr (new myProblem))
+	 (ga (new GeneticAlgorithm pr 200 100 100 75 50 "" )))
+    
+    ;;(printf "%d " (==> ga set_seed -605930))
+    (==> ga set_reproduction_selection 2)
+    ;;Run non-spatial evolution (standard evolution)
+    (==> ga evolution 0.5 0.0 3)
+    ;;Run non-spatial coevolution
+    (==> ga set_host_mutation 0.2)
+    (==> ga set_paras_mutation 0.2)
+    (==> ga coevolution 0.5 0 3)
+    ;;Run spatial evolution 
+    (==> ga evolution_spatial 0.5 0.0)
+    (==> ga plot)
+    ;;Run spatial coevolution
+    (==> ga coevolution_spatial 0.5 0.0)
+    (==> ga plot)
+    ))

@@ -1,0 +1,62 @@
+LushGA 
+----------------------------------------------------------------------
+Copyright (c) 2011 Martin Cenek (drcenek@gmail.com)
+
+LushGA is a machine learning toolkit that implements multiple variants
+of the genetic algorithm (GA). This includes evolution (standard
+evolution), non-spatial co-evolution, spatial evolution and spatial
+co-evolution.  The implementation supports user-defined fitness
+functions, the performance measurement tools to study evolutionary
+dynamics, and highly configurable evolutionary search
+parameters. Intended use of this toolkit is for educational,
+scientific, and engineering needs.
+
+For additional help see:
+HELP (explains parameters and routines) 
+driver-ga.lsh (contains a sample code, use of different algorithms,
+              setting parameters...)
+
+This project is licensed under the MIT License. See LICENSE for more
+information.
+
+A list of implemented features: 
+User defined GA parameters:
+- choosing from one of four core algorithms
+- seeding with a random seed or loading previously-saved seed
+- binary chromosome encoding with configurable length between 1 to
+  1000 bits long
+- reproduction operators include 0pt (mutation only) and 1pt
+  crossover, and a bitwise mutation with user-defined probability
+- fitness assessment by population sampling and local neighborhood for
+  a spatially extended population
+- selection for reproduction by random selection, biased roulette
+  wheel and tournament selection
+- offspring generation including elitism and parent replacement.
+
+Analysis Tools for Evolutionary Dynamics:
+Plots:
+- fitness of best candidate solution vs generation
+- coevolution plots displaying candidate solution (host) fitness and
+  test case (parasite) fitness vs generation
+
+Logs:
+- experimental setup, random seed
+- candidate solutions: genomes, fitness
+- test cases: genomes, fitness
+
+Proposed direction and things to do:
+- Implement resource sharing for fitness assessment.
+- Currently spatial coevolution assignes parasite fitness according to
+  how it was evaluated with respect to a host in the same spatial
+  location. An alternative option is to assign a parasite fitness with
+  respect to ALL evaluations it was subjected to (not just the result
+  of interaction with a host in the same local). The parasite fitness
+  is then normalized by the neighborhood size (9).
+- Plots (Analysis Tools for Evolutionary Dynamics) pie chart of
+  fitness distribution at given generation.
+
+For additional information and resources see: 
+(1) Lush: open-source project @ http://sourceforge.net/projects/lush/
+(2) Stochastic search algorithms GA @
+    http://en.wikipedia.org/wiki/Genetic_algorithm
+
