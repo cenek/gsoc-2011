@@ -160,45 +160,6 @@
      )
     ))
 
-;; (defmethod EvolutionSP evaluate_coevolution (host paras FITNESSxSAMPLExSIZE)
-;;   (declare (-obj- (Population)) host paras)
-;;   (declare (-int-) FITNESSxSAMPLExSIZE) 
-;;   (let* ((res 0) (ret1 0) (ret2 0)
-;; 	 ;(ret '())
-;; 	(paras_size (==> paras get_population_size))
-;; 	;;to selection count for parasites being chosen during evaluation
-;; 	(paras_fitness_count (int-array paras_size))  
-;; 	(paras_index 0))
-        
-;;     (declare (-int-) paras_size)
-;;     (declare (-idx1- (-int-)) paras_fitness_count)
-;;     (declare (-double-) res ret1 ret2)
-
-;;     (for* (i 0 (==> host get_population_size))
-;;       (setq res 0)
-      
-;;       (for* (j 0 FITNESSxSAMPLExSIZE)   ;; sample tests to assess fitness
-;;         ;(declare (-int-) j) 
-;; 	(setq paras_index (to-int #{r0n($paras_size)#}))
-;; 	(let ((ret (==> ob_problem fitness (==> host get_genome i) 
-;; 		       (==> paras get_genome paras_index))))
-;; 	      (setq res (+ res (nth 0 ret)));;keep track of host fitness
-;; 	      ;;keep track of how many times each parasite was selected
-;; 	      (paras_fitness_count paras_index 
-;; 				   (+ (paras_fitness_count paras_index) 1))
-;; 	      ;;keep track of parasite fitness
-;; 	      (==> paras set_fitness paras_index
-;; 		   (+ (==> paras get_fitness paras_index) (nth 1 ret))))
-;; 	)
-;;       ;;assign host fitness
-;;       (==> host set_fitness i (/ res FITNESSxSAMPLExSIZE))     
-;;       )
-;;     ;;assign parasite fitness
-;;     (for* (i 0 paras_size) 
-;;       (==> paras set_fitness i (/ (==> paras get_fitness i) 
-;; 				  (paras_fitness_count i))))
-;;     ))
-
 ;;select indiv with bias value as 0.5^rank - return its index
 (defmethod EvolutionSP repro_rank_select()
    (let ((spin 0)
@@ -335,9 +296,10 @@
 	     (let ((sel (==> this repro_select nei_fit REPRO)))
 	       (array-copy (==> ob_reproduce mu   ;;mutate offspring
 			     (==> ob_reproduce cr ;;select parent from neigh
-				  (==> host get_genome_nei (to-int (nth 0 sel)) 
-				                           (to-int (nth 1 sel)) 
-							   nei_pop)
+				  (==> host get_genome_global i j)
+				  ;; (==> host get_genome_nei (to-int (nth 0 sel)) 
+				  ;;                          (to-int (nth 1 sel)) 
+				  ;; 			   nei_pop)
 				  (==> host get_genome_nei (to-int (nth 2 sel)) 
 				                           (to-int (nth 3 sel)) 
 							   nei_pop)

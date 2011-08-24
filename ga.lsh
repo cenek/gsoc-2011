@@ -422,6 +422,10 @@
 PROJECTxDIR))))
   (dhc-make-class () GeneticAlgorithm))
 
+(defmethod GeneticAlgorithm help ()
+  (sys "cat HELP")
+)
+
 (defmethod GeneticAlgorithm plot ()
   (libload "gnuplot/plot")
   (let* ((data (double-array GENERATIONS 2))
@@ -434,26 +438,48 @@ PROJECTxDIR))))
     (array-copy (idx-select BEST 1 0) (idx-select data2 1 0))
     (array-copy (idx-select BEST 1 1) (idx-select data 1 1))
     (array-copy (idx-select BEST 1 2) (idx-select data2 1 1))
-    (setq max_y (max ((idx-sup (idx-select data 1 1))) 
-		     ((idx-sup (idx-select data2 1 1)))))
-    (if (or (= ALGOL 0) (= ALGOL 2))
-	(setq g (plot* (title "Host Fitness")
+    (setq max_y (+ (max ((idx-sup (idx-select data 1 1))) 
+			((idx-sup (idx-select data2 1 1)))) 3))
+    (cond 
+     ((= ALGOL 0)
+	(setq g (plot* (title "Evolution: Host Fitness")
 		       "set xlabel \"generations\""
 		       "set ylabel \"fitness\""
 		       (xrange 0 GENERATIONS)
 		       (yrange 0 max_y)
 		       (ytics (arange 0 max_y (/ max_y 10)))
 		       (margin 'left 0.15  'right 0.95)
-		       (lines data)))
-      (setq g (plot* (title "Host(red) and Parasite(blue) Fitness")
+		       (lines data))))
+     ((= ALGOL 1)
+       (setq g (plot* (title "CoEvolution: Host(red) and Parasite(blue) Fitness")
 		       "set xlabel \"generations\""
 		       "set ylabel \"fitness\""
-		       (xrange 0 GENERATIONS)
+ 		       (xrange 0 GENERATIONS)
 		       (yrange 0 max_y)
 		       (ytics (arange 0 max_y (/ max_y 10)))
 		       (margin 'left 0.15  'right 0.95)
 		       (lines data (lc "red"))
-		       (lines data2 (lc "blue"))))   )
+		       (lines data2 (lc "blue")))))
+     ((= ALGOL 2)
+ 	(setq g (plot* (title "SP Evolution Host Fitness")
+		       "set xlabel \"generations\""
+		       "set ylabel \"fitness\""
+		       (xrange 0 GENERATIONS)
+		       (yrange 0 max_y)
+		       (ytics (arange 0 max_y (/ max_y 10)))
+		       (margin 'left 0.15  'right 0.95)
+		       (lines data))))
+     ((= ALGOL 3)
+       (setq g (plot* (title "SP CoEvolution Host(red) and Parasite(blue) Fitness")
+		       "set xlabel \"generations\""
+		       "set ylabel \"fitness\""
+ 		       (xrange 0 GENERATIONS)
+		       (yrange 0 max_y)
+		       (ytics (arange 0 max_y (/ max_y 10)))
+		       (margin 'left 0.15  'right 0.95)
+		       (lines data (lc "red"))
+		       (lines data2 (lc "blue")))))  )
+    
     (==> gp do-graph g)
     (pause)
     ))
